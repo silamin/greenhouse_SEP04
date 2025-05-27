@@ -3,7 +3,7 @@ name: Deploy Frontend Service
 on:
   push:
     paths:
-      - 'frontend/**'
+      - 'my-app/**'
       - 'render.yaml'
 
 jobs:
@@ -11,8 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install Render CLI
+        run: curl -fsSL https://cdn.render.com/cli/install.sh | bash
+
       - name: Deploy Frontend to Render
-        uses: render-examples/github-action@v1
-        with:
-          apiKey: ${{ secrets.RENDER_API_KEY }}
-          serviceName: frontend-service
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          export PATH="$HOME/.render:$PATH"
+          render services deploy frontend-service --yes --from-file render.yaml

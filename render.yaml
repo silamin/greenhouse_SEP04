@@ -1,27 +1,4 @@
-# render.yaml
 # Blueprint for SEP4 monorepo: API, ML, TCP, Frontend, NATS, Postgres
-
-envVarGroups:
-  - name: prod
-    envVars:
-      # DB connection (from the pg database below)
-      - key: DATABASE_URL
-        fromDatabase:
-          name: pg
-          property: connectionString
-
-      # NATS address for backend services
-      - key: NATS_URL
-        fromService:
-          name: nats-server
-          type: pserv
-          property: hostport
-
-      # Shared secrets
-      - key: JWT_SECRET
-        generateValue: true
-      - key: SEED_MOCK_DATA
-        value: "false"
 
 services:
   # 1) FastAPI backend
@@ -39,7 +16,19 @@ services:
     dockerfilePath: backend/api_service/Dockerfile
     healthCheckPath: /health
     envVars:
-      - fromGroup: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pg
+          property: connectionString
+      - key: NATS_URL
+        fromService:
+          name: nats-server
+          type: pserv
+          property: hostport
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SEED_MOCK_DATA
+        value: "false"
 
   # 2) ML model API & training job
   - name: ml-service
@@ -56,7 +45,19 @@ services:
     dockerfilePath: backend/ml_service/Dockerfile
     healthCheckPath: /health
     envVars:
-      - fromGroup: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pg
+          property: connectionString
+      - key: NATS_URL
+        fromService:
+          name: nats-server
+          type: pserv
+          property: hostport
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SEED_MOCK_DATA
+        value: "false"
 
   # 3) TCP listener for IoT → NATS
   - name: tcp-service
@@ -72,7 +73,19 @@ services:
     dockerContext: .
     dockerfilePath: backend/tcp_service/Dockerfile
     envVars:
-      - fromGroup: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pg
+          property: connectionString
+      - key: NATS_URL
+        fromService:
+          name: nats-server
+          type: pserv
+          property: hostport
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SEED_MOCK_DATA
+        value: "false"
 
   # 4) React/Vite frontend
   - name: frontend-service
@@ -89,7 +102,12 @@ services:
     dockerfilePath: frontend/Dockerfile
     healthCheckPath: /health
     envVars:
-      - fromGroup: prod
+      - key: VITE_API_URL
+        value: https://api-service.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SEED_MOCK_DATA
+        value: "false"
 
   # 5) NATS message broker
   - name: nats-server
@@ -99,7 +117,6 @@ services:
       url: nats:2
     plan: starter
     region: frankfurt
-    # default autoDeployTrigger: commit, no buildFilter needed
 
 databases:
   # 6) PostgreSQL

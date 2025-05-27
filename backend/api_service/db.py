@@ -6,11 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 class Settings(BaseSettings):
-    database_url: str
-
-    class Config:
-        env_file = ".env"
-
+    database_url: str = os.getenv("DATABASE_URL")
 
 settings = Settings()
 

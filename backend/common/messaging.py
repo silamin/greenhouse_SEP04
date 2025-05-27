@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+
 from nats.aio.client import Client as NATS
 from nats.errors import TimeoutError, NoServersError
 from nats.js.api import StorageType, StreamConfig
@@ -36,7 +38,7 @@ async def init_nats():
     global nc, js
     try:
         # Connect to NATS server (adjust URL and options as needed)
-        nc = await wait_for_nats("nats://nats:4222")
+        nc = await wait_for_nats(os.getenv("NATS_URL", "nats://localhost:4222"))
         logger.info("Connected to NATS at %s", nc.connected_url.netloc)
 
         # Create JetStream context (has management API built-in):contentReference[oaicite:6]{index=6}

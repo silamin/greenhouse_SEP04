@@ -1,23 +1,60 @@
-name: Deploy TCP Service
+# deploy-tcp.yml
+name: Deploy TCP Service to ECS
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'backend/tcp_service/**'
-      - 'render.yaml'
+      - '.github/tcp-service-task-def.json'
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_ACCOUNT: 753591596815
+  CLUSTER: heavenly-fish-3zsiv2
+  SERVICE: tcp-service
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install Render CLI
-        run: curl -fsSL https://cdn.render.com/cli/install.sh | bash
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Deploy TCP to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push TCP image
+        id: build
         run: |
-          export PATH="$HOME/.render:$PATH"
-          render services deploy tcp-service --yes --from-file render.yaml
+          IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/tcp-service:${{ github.sha }}
+          docker build \
+            -t $IMAGE_URI \
+            -f backend/tcp_service/Dockerfile \
+            backend
+          docker push $IMAGE_URI
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      - name: Render ECS task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/tcp-service-task-def.json
+          container-name:  tcp-service
+          image:           ${{ steps.build.outputs.IMAGE_URI }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition:           ${{ steps.render.outputs.task-definition }}
+          service:                   ${{ env.SERVICE }}
+          cluster:                   ${{ env.CLUSTER }}
+          wait-for-service-stability: true

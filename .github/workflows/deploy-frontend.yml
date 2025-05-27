@@ -1,23 +1,60 @@
-name: Deploy Frontend Service
+# .github/workflows/deploy-frontend.yml
+name: Deploy Frontend to ECS
 
 on:
   push:
+    branches:
+      - main
     paths:
+      # any change in your React app
       - 'my-app/**'
-      - 'render.yaml'
+      # or changes to its ECS task definition
+      - '.github/frontend-task-def.json'
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_ACCOUNT: 753591596815
+  CLUSTER: heavenly-fish-3zsiv2
+  SERVICE: frontend-service
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Render CLI
-        run: curl -fsSL https://cdn.render.com/cli/install.sh | bash
+      - name: Configure AWS creds
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Deploy Frontend to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push image
+        id: build
         run: |
-          export PATH="$HOME/.render:$PATH"
-          render services deploy frontend-service --yes --from-file render.yaml
+          IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/frontend:${{ github.sha }}
+          docker build -t $IMAGE_URI ./my-app
+          docker push $IMAGE_URI
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      - name: Render task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/frontend-task-def.json
+          container-name:  frontend
+          image:           ${{ steps.build.outputs.IMAGE_URI }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition:         ${{ steps.render.outputs.task-definition }}
+          service:                 ${{ env.SERVICE }}
+          cluster:                 ${{ env.CLUSTER }}
+          wait-for-service-stability: true

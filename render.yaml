@@ -30,34 +30,6 @@ services:
       - key: SEED_MOCK_DATA
         value: "false"
 
-  # 2) ML model API & training job
-  - name: ml-service
-    type: web
-    runtime: docker
-    plan: starter
-    region: frankfurt
-    branch: main
-    autoDeployTrigger: off
-    buildFilter:
-      paths:
-        - backend/ml_service/**
-    dockerContext: .
-    dockerfilePath: backend/ml_service/Dockerfile
-    healthCheckPath: /health
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: pg
-          property: connectionString
-      - key: NATS_URL
-        fromService:
-          name: nats-server
-          type: pserv
-          property: hostport
-      - key: JWT_SECRET
-        generateValue: true
-      - key: SEED_MOCK_DATA
-        value: "false"
 
   # 3) TCP listener for IoT → NATS
   - name: tcp-service

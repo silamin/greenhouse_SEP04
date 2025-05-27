@@ -97,9 +97,9 @@ services:
     autoDeployTrigger: off
     buildFilter:
       paths:
-        - frontend/**
+        - my-app/**
     dockerContext: .
-    dockerfilePath: frontend/Dockerfile
+    dockerfilePath: my-app/Dockerfile
     healthCheckPath: /health
     envVars:
       - key: VITE_API_URL

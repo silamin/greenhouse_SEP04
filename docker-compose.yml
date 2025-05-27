@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:15
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.11.4
+    command: ["-js", "--store_dir", "/data/jetstream"]
+    ports:
+      - "4222:4222"
+    volumes:
+      - nats_data:/data/jetstream
+
+  api_service:
+    build:
+      context: ./backend
+      dockerfile: api_service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    ports:
+      - "8001:8000"
+
+  tcp_service:
+    build:
+      context: ./backend
+      dockerfile: tcp_service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    ports:
+      - "9000:9000"
+
+  frontend:
+    build:
+      context: ./my-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api_service
+    environment:
+      - VITE_API_URL=http://api_service:8000
+
+volumes:
+  pgdata:
+  nats_data:

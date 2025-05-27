@@ -1,0 +1,7 @@
+# don't leak secrets or useless files into the build context
+__pycache__
+*.py[cod]
+*.env
+.env
+.git
+tests/

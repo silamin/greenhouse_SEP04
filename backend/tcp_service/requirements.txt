@@ -1,0 +1,4 @@
+python-dotenv
+nats-py
+SQLAlchemy
+psycopg2-binary

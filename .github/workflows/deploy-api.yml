@@ -12,7 +12,7 @@ on:
 env:
   AWS_REGION: eu-central-1
   ECR_ACCOUNT: 753591596815
-  CLUSTER: heavenly-fish-3zsiv2
+  CLUSTER: acclaimed-rhinoceros-apubso
   SERVICE: api-service
 
 jobs:

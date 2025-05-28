@@ -10,8 +10,8 @@ on:
 env:
   AWS_REGION: eu-north-1
   ECR_ACCOUNT: 753591596815
-  CLUSTER: acclaimed-rhinoceros-apubso
-  SERVICE: api-service-service-ubi3k63f
+  CLUSTER: upbeat-crocodile-7y9smz
+  SERVICE: api-service-service-s0ep1a2r
 
 jobs:
   deploy:

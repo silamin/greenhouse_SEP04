@@ -14,9 +14,10 @@
         { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
-        { "name": "DATABASE_URL",      "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
-        { "name": "SEED_MOCK_DATA",     "value": "true" },
-        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" }
+        { "name": "DATABASE_URL",  "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
+        { "name": "SEED_MOCK_DATA", "value": "true" },
+        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" },
+        { "name": "NATS_URL",       "value": "nats://127.0.0.1:4222" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
@@ -24,6 +25,22 @@
           "awslogs-group":         "/ecs/api-service",
           "awslogs-region":        "eu-north-1",
           "awslogs-stream-prefix": "ecs"
+        }
+      }
+    },
+    {
+      "name": "nats",
+      "image": "nats:latest",
+      "essential": false,
+      "portMappings": [
+        { "containerPort": 4222, "protocol": "tcp" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group":         "/ecs/api-service",
+          "awslogs-region":        "eu-north-1",
+          "awslogs-stream-prefix": "nats"
         }
       }
     }

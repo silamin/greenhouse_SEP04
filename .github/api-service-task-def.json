@@ -19,6 +19,13 @@
       "portMappings": [
         { "containerPort": 8000, "protocol": "tcp" }
       ],
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "nats",
+          "--version"
+        ]
+      },
       "environment": [
         { "name": "DATABASE_URL",  "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
         { "name": "SEED_MOCK_DATA", "value": "true" },

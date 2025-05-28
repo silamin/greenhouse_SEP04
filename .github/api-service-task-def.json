@@ -37,7 +37,7 @@
         "options": {
           "awslogs-group": "/ecs/api-service",
           "awslogs-region": "eu-north-1",
-          $1,
+          "awslogs-stream-prefix": "postgres",
           "awslogs-create-group": "true"
         }
       }
@@ -65,7 +65,7 @@
         "options": {
           "awslogs-group": "/ecs/api-service",
           "awslogs-region": "eu-north-1",
-          $1,
+          "awslogs-stream-prefix": "nats",
           "awslogs-create-group": "true"
         }
       }
@@ -99,7 +99,7 @@
         "options": {
           "awslogs-group": "/ecs/api-service",
           "awslogs-region": "eu-north-1",
-          $1,
+          "awslogs-stream-prefix": "ecs",
           "awslogs-create-group": "true"
         }
       }

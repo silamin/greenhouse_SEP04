@@ -13,6 +13,12 @@
       "portMappings": [
         { "containerPort": 3000, "protocol": "tcp" }
       ],
+      "environment": [
+        {
+          "name": "VITE_API_URL",
+          "value": "http://api-tg-1598256574.eu-north-1.elb.amazonaws.com:8000"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

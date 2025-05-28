@@ -10,12 +10,19 @@
       "name": "api-service",
       "image": "REPLACE_IMAGE",
       "essential": true,
-      "portMappings": [ { "containerPort": 8000, "protocol": "tcp" } ],
+      "portMappings": [
+        { "containerPort": 8000, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "DATABASE_URL",      "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
+        { "name": "SEED_MOCK_DATA",     "value": "true" },
+        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/api-service",
-          "awslogs-region": "eu-north-1",
+          "awslogs-group":         "/ecs/api-service",
+          "awslogs-region":        "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

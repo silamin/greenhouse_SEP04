@@ -1,7 +1,9 @@
 {
   "family": "api-service",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::753591596815:role/ecsTaskExecutionRole",
@@ -19,18 +21,30 @@
       "image": "postgres:15",
       "essential": false,
       "environment": [
-        { "name": "POSTGRES_USER",     "value": "postgres" },
-        { "name": "POSTGRES_PASSWORD", "value": "postgres" },
-        { "name": "POSTGRES_DB",       "value": "greenhouse" }
+        {
+          "name": "POSTGRES_USER",
+          "value": "postgres"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "value": "postgres"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "value": "greenhouse"
+        }
       ],
       "mountPoints": [
         {
-          "sourceVolume":  "pgdata",
+          "sourceVolume": "pgdata",
           "containerPath": "/var/lib/postgresql/data"
         }
       ],
       "portMappings": [
-        { "containerPort": 5432, "protocol": "tcp" }
+        {
+          "containerPort": 5432,
+          "protocol": "tcp"
+        }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "pg_isready -U postgres"],
@@ -42,8 +56,8 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group":         "/ecs/api-service",
-          "awslogs-region":        "eu-north-1",
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "postgres"
         }
       }
@@ -52,15 +66,18 @@
       "name": "nats",
       "image": "nats:latest",
       "essential": false,
-      "command": ["-js"],                          /* enable JetStream */
+      "command": ["-js"],
       "mountPoints": [
         {
-          "sourceVolume":  "jetstream-data",
+          "sourceVolume": "jetstream-data",
           "containerPath": "/data/jetstream"
         }
       ],
       "portMappings": [
-        { "containerPort": 4222, "protocol": "tcp" }
+        {
+          "containerPort": 4222,
+          "protocol": "tcp"
+        }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "nats-server --version"],
@@ -72,8 +89,8 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group":         "/ecs/api-service",
-          "awslogs-region":        "eu-north-1",
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "nats"
         }
       }
@@ -83,26 +100,44 @@
       "image": "REPLACE_IMAGE",
       "essential": true,
       "dependsOn": [
-        { "containerName": "postgres", "condition": "HEALTHY" },
-        { "containerName": "nats",     "condition": "HEALTHY"  }
+        {
+          "containerName": "postgres",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "nats",
+          "condition": "HEALTHY"
+        }
       ],
       "portMappings": [
-        { "containerPort": 8000, "protocol": "tcp" }
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
       ],
       "environment": [
         {
-          "name":  "DATABASE_URL",
+          "name": "DATABASE_URL",
           "value": "postgresql://postgres:postgres@localhost:5432/greenhouse"
         },
-        { "name": "SEED_MOCK_DATA", "value": "true" },
-        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" },
-        { "name": "NATS_URL",       "value": "nats://127.0.0.1:4222" }
+        {
+          "name": "SEED_MOCK_DATA",
+          "value": "true"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "dev-secret-change-me"
+        },
+        {
+          "name": "NATS_URL",
+          "value": "nats://127.0.0.1:4222"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group":         "/ecs/api-service",
-          "awslogs-region":        "eu-north-1",
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

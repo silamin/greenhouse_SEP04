@@ -1,19 +1,13 @@
 {
   "family": "api-service",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::067826606836:role/ecsTaskExecutionRole",
   "volumes": [
-    {
-      "name": "pgdata"
-    },
-    {
-      "name": "jetstream-data"
-    }
+    { "name": "pgdata" },
+    { "name": "jetstream-data" }
   ],
   "containerDefinitions": [
     {
@@ -21,9 +15,9 @@
       "image": "postgres:15",
       "essential": true,
       "environment": [
-        { "name": "POSTGRES_USER",    "value": "postgres" },
-        { "name": "POSTGRES_PASSWORD","value": "postgres" },
-        { "name": "POSTGRES_DB",      "value": "greenhouse" }
+        { "name": "POSTGRES_USER", "value": "postgres" },
+        { "name": "POSTGRES_PASSWORD", "value": "postgres" },
+        { "name": "POSTGRES_DB", "value": "greenhouse" }
       ],
       "mountPoints": [
         { "sourceVolume": "pgdata", "containerPath": "/var/lib/postgresql/data" }
@@ -59,11 +53,7 @@
         { "containerPort": 4222, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": [
-          "CMD",
-          "nats-server",
-          "--version"
-        ],
+        "command": ["CMD", "nats-server", "--version"],
         "interval": 10,
         "timeout": 5,
         "retries": 3,
@@ -84,25 +74,29 @@
       "essential": true,
       "dependsOn": [
         { "containerName": "postgres", "condition": "HEALTHY" },
-        { "containerName": "nats",     "condition": "HEALTHY" }
+        { "containerName": "nats", "condition": "HEALTHY" }
       ],
       "portMappings": [
         { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
-        {
-          "name":  "DATABASE_URL",
-          "value": "postgresql://postgres:postgres@localhost:5432/greenhouse"
-        },
+        { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
         { "name": "SEED_MOCK_DATA", "value": "true" },
-        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" },
-        { "name": "NATS_URL",       "value": "nats://127.0.0.1:4222" }
+        { "name": "JWT_SECRET", "value": "dev-secret-change-me" },
+        { "name": "NATS_URL", "value": "nats://nats:4222" }
       ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      },
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group":         "/ecs/api-service",
-          "awslogs-region":        "eu-north-1",
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

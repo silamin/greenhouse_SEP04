@@ -10,6 +10,12 @@
       "name": "api-service",
       "image": "REPLACE_IMAGE",
       "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "nats",
+          "condition": "START"
+        }
+      ],
       "portMappings": [
         { "containerPort": 8000, "protocol": "tcp" }
       ],

@@ -29,6 +29,6 @@ RUN ln -s /app/api_service/interfaces /app/interfaces
 RUN chmod +x /app/scripts/start.sh
 
 ENV PYTHONPATH=/app
-EXPOSE 8000
+EXPOSE 80
 
 CMD ["/app/scripts/start.sh"]

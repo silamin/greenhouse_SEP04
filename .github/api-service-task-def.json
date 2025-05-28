@@ -6,8 +6,7 @@
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::067826606836:role/ecsTaskExecutionRole",
   "volumes": [
-    { "name": "pgdata" },
-    { "name": "jetstream-data" }
+    { "name": "pgdata" }
   ],
   "containerDefinitions": [
     {
@@ -43,40 +42,11 @@
       }
     },
     {
-      "name": "nats",
-      "image": "nats:latest",
-      "essential": true,
-      "command": ["-js"],
-      "mountPoints": [
-        { "sourceVolume": "jetstream-data", "containerPath": "/data/jetstream" }
-      ],
-      "portMappings": [
-        { "containerPort": 4222, "protocol": "tcp" }
-      ],
-      "healthCheck": {
-        "command": ["CMD", "nats-server", "--version"],
-        "interval": 10,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 10
-      },
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/api-service",
-          "awslogs-region": "eu-north-1",
-          "awslogs-stream-prefix": "nats",
-          "awslogs-create-group": "true"
-        }
-      }
-    },
-    {
       "name": "api-service",
       "image": "${IMAGE_URI}",
       "essential": true,
       "dependsOn": [
-        { "containerName": "postgres", "condition": "HEALTHY" },
-        { "containerName": "nats", "condition": "HEALTHY" }
+        { "containerName": "postgres", "condition": "HEALTHY" }
       ],
       "portMappings": [
         { "containerPort": 80, "protocol": "tcp" }
@@ -84,8 +54,7 @@
       "environment": [
         { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
         { "name": "SEED_MOCK_DATA", "value": "true" },
-        { "name": "JWT_SECRET", "value": "dev-secret-change-me" },
-        { "name": "NATS_URL", "value": "nats://nats:4222" }
+        { "name": "JWT_SECRET", "value": "dev-secret-change-me" }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"],

@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   postgres:
     image: postgres:15
@@ -9,14 +11,6 @@ services:
       interval: 5s
       retries: 5
 
-  nats:
-    image: nats:2.11.4
-    command: ["-js", "--store_dir", "/data/jetstream"]
-    ports:
-      - "4222:4222"
-    volumes:
-      - nats_data:/data/jetstream
-
   api_service:
     build:
       context: ./backend
@@ -26,10 +20,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      nats:
-        condition: service_started
     ports:
-      - "8001:8000"
+      - "8001:80"   # hostPort:containerPort (container now listens on 80)
 
   tcp_service:
     build:
@@ -40,8 +32,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      nats:
-        condition: service_started
     ports:
       - "9000:9000"
 
@@ -54,8 +44,7 @@ services:
     depends_on:
       - api_service
     environment:
-      - VITE_API_URL=http://api_service:8000
+      - VITE_API_URL=http://api_service:80
 
 volumes:
   pgdata:
-  nats_data:

@@ -1,9 +1,7 @@
-"""Handle incoming packets → publish to NATS and handle local alarms."""
 import json
 from datetime import datetime
 from dataclasses import asdict
 
-from common.messaging import publish_reading
 from common.models import SensorReading, DeviceCommand
 from tcp_service.use_cases.command_service import CommandService
 
@@ -35,8 +33,7 @@ class SensorService:
             acc_z=acc[2],
         )
 
-        # ① publish to NATS
-        await publish_reading(asdict(r) | {"owner": owner})
+        # ① call api
 
         # ② evaluate thresholds and respond
         self._check_thresholds(r, owner)

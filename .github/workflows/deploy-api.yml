@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_ACCOUNT: 753591596815
+  ECR_ACCOUNT: 067826606836
   CLUSTER: upbeat-crocodile-7y9smz
   SERVICE: api-service-service-s0ep1a2r
 

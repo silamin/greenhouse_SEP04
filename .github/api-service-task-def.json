@@ -13,7 +13,7 @@
       "dependsOn": [
         {
           "containerName": "nats",
-          "condition": "HEALTHY"
+          "condition": "START"
         }
       ],
       "portMappings": [

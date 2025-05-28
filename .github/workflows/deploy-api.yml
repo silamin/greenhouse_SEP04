@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_ACCOUNT: 067826606836
+  ECR_ACCOUNT: "067826606836"
   CLUSTER: upbeat-crocodile-7y9smz
   SERVICE: api-service-service-s0ep1a2r
 
@@ -34,6 +34,7 @@ jobs:
         id: build
         run: |
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/api-service:${{ github.sha }}
+          echo "Pushing to $IMAGE_URI"
           docker build \
             -t $IMAGE_URI \
             -f backend/api_service/Dockerfile \

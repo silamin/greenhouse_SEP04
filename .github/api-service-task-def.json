@@ -79,7 +79,7 @@
         { "containerName": "nats", "condition": "HEALTHY" }
       ],
       "portMappings": [
-        { "containerPort": 8000, "protocol": "tcp" }
+        { "containerPort": 80, "protocol": "tcp" }
       ],
       "environment": [
         { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },

@@ -19,32 +19,17 @@
     {
       "name": "postgres",
       "image": "postgres:15",
-      "essential": false,
+      "essential": true,
       "environment": [
-        {
-          "name": "POSTGRES_USER",
-          "value": "postgres"
-        },
-        {
-          "name": "POSTGRES_PASSWORD",
-          "value": "postgres"
-        },
-        {
-          "name": "POSTGRES_DB",
-          "value": "greenhouse"
-        }
+        { "name": "POSTGRES_USER",    "value": "postgres" },
+        { "name": "POSTGRES_PASSWORD","value": "postgres" },
+        { "name": "POSTGRES_DB",      "value": "greenhouse" }
       ],
       "mountPoints": [
-        {
-          "sourceVolume": "pgdata",
-          "containerPath": "/var/lib/postgresql/data"
-        }
+        { "sourceVolume": "pgdata", "containerPath": "/var/lib/postgresql/data" }
       ],
       "portMappings": [
-        {
-          "containerPort": 5432,
-          "protocol": "tcp"
-        }
+        { "containerPort": 5432, "protocol": "tcp" }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "pg_isready -U postgres"],
@@ -65,24 +50,18 @@
     {
       "name": "nats",
       "image": "nats:latest",
-      "essential": false,
+      "essential": true,
       "command": ["-js"],
       "mountPoints": [
-        {
-          "sourceVolume": "jetstream-data",
-          "containerPath": "/data/jetstream"
-        }
+        { "sourceVolume": "jetstream-data", "containerPath": "/data/jetstream" }
       ],
       "portMappings": [
-        {
-          "containerPort": 4222,
-          "protocol": "tcp"
-        }
+        { "containerPort": 4222, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "nats-server --version"],
-        "interval": 5,
-        "timeout": 2,
+        "command": ["CMD-SHELL", "nc -z localhost 4222"],
+        "interval": 10,
+        "timeout": 5,
         "retries": 3,
         "startPeriod": 10
       },
@@ -97,47 +76,29 @@
     },
     {
       "name": "api-service",
-      "image": "REPLACE_IMAGE",
+      "image": "753591596815.dkr.ecr.eu-north-1.amazonaws.com/api-service:b0ad3118599cf3b89f2595043af1558cc178e3a3",
       "essential": true,
       "dependsOn": [
-        {
-          "containerName": "postgres",
-          "condition": "HEALTHY"
-        },
-        {
-          "containerName": "nats",
-          "condition": "HEALTHY"
-        }
+        { "containerName": "postgres", "condition": "HEALTHY" },
+        { "containerName": "nats",     "condition": "HEALTHY" }
       ],
       "portMappings": [
-        {
-          "containerPort": 8000,
-          "protocol": "tcp"
-        }
+        { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
         {
-          "name": "DATABASE_URL",
+          "name":  "DATABASE_URL",
           "value": "postgresql://postgres:postgres@localhost:5432/greenhouse"
         },
-        {
-          "name": "SEED_MOCK_DATA",
-          "value": "true"
-        },
-        {
-          "name": "JWT_SECRET",
-          "value": "dev-secret-change-me"
-        },
-        {
-          "name": "NATS_URL",
-          "value": "nats://127.0.0.1:4222"
-        }
+        { "name": "SEED_MOCK_DATA", "value": "true" },
+        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" },
+        { "name": "NATS_URL",       "value": "nats://127.0.0.1:4222" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/api-service",
-          "awslogs-region": "eu-north-1",
+          "awslogs-group":         "/ecs/api-service",
+          "awslogs-region":        "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

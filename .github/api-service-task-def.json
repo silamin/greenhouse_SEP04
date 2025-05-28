@@ -59,7 +59,11 @@
         { "containerPort": 4222, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "nc -z localhost 4222"],
+        "command": [
+          "CMD",
+          "nats-server",
+          "--version"
+        ],
         "interval": 10,
         "timeout": 5,
         "retries": 3,

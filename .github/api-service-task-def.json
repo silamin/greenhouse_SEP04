@@ -6,7 +6,7 @@
   ],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::753591596815:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::067826606836:role/ecsTaskExecutionRole",
   "volumes": [
     {
       "name": "pgdata"
@@ -37,7 +37,7 @@
         "timeout": 2,
         "retries": 5,
         "startPeriod": 10
-      },
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -80,7 +80,7 @@
     },
     {
       "name": "api-service",
-      "image": "753591596815.dkr.ecr.eu-north-1.amazonaws.com/api-service:b0ad3118599cf3b89f2595043af1558cc178e3a3",
+      "image": "${IMAGE_URI}",
       "essential": true,
       "dependsOn": [
         { "containerName": "postgres", "condition": "HEALTHY" },

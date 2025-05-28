@@ -41,12 +41,8 @@
       "portMappings": [
         { "containerPort": 4222, "protocol": "tcp" }
       ],
-      "healthCheck": {
-        "command": [
-          "CMD",
-          "nats",
-          "--version"
-        ],
+     "healthCheck": {
+       "command": [ "CMD", "nats-server", "--version" ],
         "interval": 5,
         "timeout": 2,
         "retries": 2,

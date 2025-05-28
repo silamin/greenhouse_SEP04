@@ -20,6 +20,6 @@ app.include_router(sensors)
 app.include_router(settings)  # <- This must exist!
 
 
-@app.get("/health", tags=["meta"])
+@app.get("/health")
 def health():
     return {"status": "ok"}

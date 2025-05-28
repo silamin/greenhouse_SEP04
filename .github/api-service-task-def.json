@@ -8,6 +8,9 @@
   "volumes": [
     {
       "name": "pgdata"
+    },
+    {
+      "name": "jetstream-data"
     }
   ],
   "containerDefinitions": [
@@ -30,7 +33,7 @@
         { "containerPort": 5432, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": [ "CMD-SHELL", "pg_isready -U postgres" ],
+        "command": ["CMD-SHELL", "pg_isready -U postgres"],
         "interval": 5,
         "timeout": 2,
         "retries": 5,
@@ -49,11 +52,18 @@
       "name": "nats",
       "image": "nats:latest",
       "essential": false,
+      "command": ["-js"],                          /* enable JetStream */
+      "mountPoints": [
+        {
+          "sourceVolume":  "jetstream-data",
+          "containerPath": "/data/jetstream"
+        }
+      ],
       "portMappings": [
         { "containerPort": 4222, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": [ "CMD", "nats-server", "--version" ],
+        "command": ["CMD-SHELL", "nats-server --version"],
         "interval": 5,
         "timeout": 2,
         "retries": 3,
@@ -74,7 +84,7 @@
       "essential": true,
       "dependsOn": [
         { "containerName": "postgres", "condition": "HEALTHY" },
-        { "containerName": "nats",     "condition": "HEALTHY" }
+        { "containerName": "nats",     "condition": "HEALTHY"  }
       ],
       "portMappings": [
         { "containerPort": 8000, "protocol": "tcp" }

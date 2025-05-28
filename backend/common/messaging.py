@@ -28,7 +28,6 @@ async def wait_for_nats(
             return await nats.connect(
                 servers=[url],
                 connect_timeout=timeout,
-                reconnect=False
             )
         except (NoServersError, asyncio.TimeoutError) as e:
             logger.warning(
@@ -105,8 +104,3 @@ async def close_nats():
     if nc:
         await nc.drain()
         logger.info("NATS connection closed")
-
-# Example:
-# asyncio.run(init_nats())
-# asyncio.run(publish_reading({"temp":25.1}))
-# asyncio.run(close_nats())

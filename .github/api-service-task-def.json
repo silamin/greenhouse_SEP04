@@ -1,0 +1,24 @@
+{
+  "family": "api-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::753591596815:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "api-service",
+      "image": "REPLACE_IMAGE",
+      "essential": true,
+      "portMappings": [ { "containerPort": 8000, "protocol": "tcp" } ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

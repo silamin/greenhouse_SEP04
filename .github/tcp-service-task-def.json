@@ -1,0 +1,26 @@
+{
+  "family": "tcp-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::753591596815:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "tcp-service",
+      "image": "REPLACE_IMAGE",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 9000, "protocol": "tcp" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group":         "/ecs/tcp-service",
+          "awslogs-region":        "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

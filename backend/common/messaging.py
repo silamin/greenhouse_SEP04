@@ -1,12 +1,10 @@
 import asyncio
 import logging
-import os
-
+import json
 from nats.aio.client import Client as NATS
-from nats.errors import TimeoutError, NoServersError
+from nats.errors import NoServersError
 from nats.js.api import StorageType, StreamConfig
 import nats
-import json
 
 # Configure logging for diagnostics
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +18,6 @@ js = None
 STREAM_NAME = "SENSOR_READINGS"
 SUBJECT = "SENSOR_READINGS"
 
-
 async def wait_for_nats(url: str, retries: int = 5):
     delay = 1
     for attempt in range(retries):
@@ -29,38 +26,37 @@ async def wait_for_nats(url: str, retries: int = 5):
         except Exception as e:
             if attempt == retries - 1:
                 raise e
+            logger.warning("NATS connect failed (attempt %d): %s", attempt + 1, e)
             await asyncio.sleep(delay)
             delay *= 2
-
 
 async def init_nats():
     """Initialize NATS connection, create stream if needed, and subscribe to subject."""
     global nc, js
     try:
-        # Connect to NATS server (adjust URL and options as needed)
-        nc = await wait_for_nats("http://api-tg-1598256574.eu-north-1.elb.amazonaws.com::4222")
-        logger.info("Connected to NATS at %s", nc.connected_url.netloc)
+        # CORRECTED: use nats:// and single colon before port
+        nc = await wait_for_nats("nats://api-tg-1598256574.eu-north-1.elb.amazonaws.com:4222")
+        logger.info("Connected to NATS at %s", nc.connected_url)
 
-        # Create JetStream context (has management API built-in):contentReference[oaicite:6]{index=6}
+        # Create JetStream context
         js = nc.jetstream()
 
-        # Define stream configuration with 7-day max age (in seconds)
+        # Define stream configuration with 7-day max age
         stream_cfg = StreamConfig(
             name=STREAM_NAME,
             subjects=[SUBJECT],
             max_age=7 * 24 * 60 * 60,  # one week
-            storage=StorageType.FILE  # durable file storage
+            storage=StorageType.FILE
         )
 
-        # Attempt to add the stream (idempotent if exists):contentReference[oaicite:7]{index=7}.
+        # Attempt to add the stream (idempotent)
         try:
             info = await js.add_stream(stream_cfg)
-            logger.info("Stream %s created: config=%s", STREAM_NAME, info.config.__dict__)
+            logger.info("Stream %s created: %s", STREAM_NAME, info.config.__dict__)
         except Exception as e:
-            # If stream exists (or other issue), log and continue
-            logger.warning("Could not create stream %s: %s", STREAM_NAME, e)
+            logger.warning("Could not create stream %s (maybe exists): %s", STREAM_NAME, e)
 
-        # Subscribe to the subject with a durable consumer
+        # Subscribe with a durable consumer
         await js.subscribe(
             SUBJECT,
             durable="sensor_reader",
@@ -74,49 +70,51 @@ async def init_nats():
     except Exception as e:
         logger.error("Error setting up NATS/JetStream: %s", e)
 
-
 async def message_handler(msg):
     """Process incoming JetStream messages."""
     try:
         data = msg.data.decode()
         logger.info("Received message on '%s': %s", msg.subject, data)
-        await msg.ack()  # Acknowledge message
+        await msg.ack()
     except Exception as e:
         logger.error("Failed to handle message: %s", e)
-
-
-async def close_nats():
-    """Drain and close the NATS connection."""
-    global nc
-    if nc is not None:
-        try:
-            await nc.drain()  # flush and close
-            logger.info("NATS connection drained and closed")
-        except Exception as e:
-            logger.error("Error closing NATS connection: %s", e)
-
 
 def build_handler(persist_func):
     async def handler(msg):
         try:
             data = msg.data.decode()
             logger.info("Received message: %s", data)
-            await persist_func(eval(data))  # ⚠️ Use `json.loads` in production!
+            # SAFE PARSING instead of eval
+            payload = json.loads(data)
+            await persist_func(payload)
             await msg.ack()
         except Exception as e:
             logger.error("Error handling message: %s", e)
-
     return handler
-
 
 async def publish_reading(reading: dict):
     """Publish a sensor reading to the NATS JetStream stream."""
-    global _nc, _js
-
-    if _nc is None or _js is None:
+    global nc, js
+    if nc is None or js is None:
         await init_nats()  # lazy init if needed
 
     try:
-        await _js.publish(SUBJECT, json.dumps(reading).encode())
+        await js.publish(SUBJECT, json.dumps(reading).encode())
+        logger.info("Published reading to %s: %s", SUBJECT, reading)
     except Exception as e:
         logger.error("Failed to publish reading: %s", e)
+
+async def close_nats():
+    """Drain and close the NATS connection."""
+    global nc
+    if nc is not None:
+        try:
+            await nc.drain()
+            logger.info("NATS connection drained and closed")
+        except Exception as e:
+            logger.error("Error closing NATS connection: %s", e)
+
+# Example usage:
+# asyncio.run(init_nats())
+# asyncio.run(publish_reading({"temperature": 22.5, "humidity": 55}))
+# asyncio.run(close_nats())

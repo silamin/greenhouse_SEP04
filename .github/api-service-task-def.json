@@ -37,7 +37,7 @@
         "timeout": 2,
         "retries": 5,
         "startPeriod": 10
-      ],
+      },
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -59,11 +59,7 @@
         { "containerPort": 4222, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": [
-          "CMD",
-          "nats-server",
-          "--version"
-        ],
+        "command": ["CMD", "nats-server", "--version"],
         "interval": 10,
         "timeout": 5,
         "retries": 3,
@@ -90,19 +86,16 @@
         { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
-        {
-          "name":  "DATABASE_URL",
-          "value": "postgresql://postgres:postgres@localhost:5432/greenhouse"
-        },
+        { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@localhost:5432/greenhouse" },
         { "name": "SEED_MOCK_DATA", "value": "true" },
-        { "name": "JWT_SECRET",     "value": "dev-secret-change-me" },
-        { "name": "NATS_URL",       "value": "nats://127.0.0.1:4222" }
+        { "name": "JWT_SECRET", "value": "dev-secret-change-me" },
+        { "name": "NATS_URL", "value": "nats://127.0.0.1:4222" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group":         "/ecs/api-service",
-          "awslogs-region":        "eu-north-1",
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

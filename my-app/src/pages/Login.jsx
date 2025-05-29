@@ -16,7 +16,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/token', { username, password });
+      const response = await api.post('/auth/token', { username, password });
       const { access_token, is_first_login } = response.data;
       login(access_token);
 

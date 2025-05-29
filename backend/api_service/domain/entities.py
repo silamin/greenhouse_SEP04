@@ -1,31 +1,42 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-
 @dataclass
 class SensorReading:
-    id: Optional[int]
-    timestamp: datetime
-    temp: float
-    hum: float
-    soil: int
-    light: int
-    dist: int
-    motion: bool
-    acc_x: int
-    acc_y: int
-    acc_z: int
-
+    id: Optional[int] = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    temp: float = 0.0
+    hum: float = 0.0
+    soil: int = 0
+    light: int = 0
+    dist: int = 0
+    motion: bool = False
+    acc_x: int = 0
+    acc_y: int = 0
+    acc_z: int = 0
 
 @dataclass
 class GreenhouseSettings:
-    owner: str
-    name: str
-    temp_min: float
-    temp_max: float
-    light_min: float
-    light_max: float
-    hum_min: float
-    hum_max: float
-    soil_min: int
+    id: Optional[int] = None
+    owner: str = ""
+    name: str = ""
+    temp_min: float = 0.0
+    temp_max: float = 0.0
+    light_min: float = 0.0
+    light_max: float = 0.0
+    hum_min: float = 0.0
+    hum_max: float = 0.0
+    soil_min: int = 0
+
+@dataclass
+class User:
+    id: Optional[int] = None
+    username: str = ""
+    password_hash: str = ""
+    is_first_login: bool = True
+
+@dataclass
+class RevokedToken:
+    jti: str
+    revoked_at: datetime = field(default_factory=datetime.utcnow)

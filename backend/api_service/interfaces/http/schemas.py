@@ -1,13 +1,11 @@
 from pydantic import BaseModel, field_validator
+from typing import Optional
 from datetime import datetime
-from typing import Optional, Annotated
 import re
 
-# ------------------------------
-# Sensor Models
-# ------------------------------
-
-class SensorDataBase(BaseModel):
+# --- Sensors ---
+class SensorDataCreate(BaseModel):
+    timestamp: Optional[datetime]
     temp: float
     hum: float
     soil: int
@@ -18,23 +16,11 @@ class SensorDataBase(BaseModel):
     acc_y: int
     acc_z: int
 
-
-class SensorDataCreate(SensorDataBase):
-    timestamp: Optional[datetime] = None
-
-
-class SensorDataRead(SensorDataBase):
+class SensorDataRead(SensorDataCreate):
     id: int
     timestamp: datetime
 
-    class Config:
-        from_attributes = True  # ✅ Required for .from_orm() in Pydantic v2
-
-
-# ------------------------------
-# Settings Models
-# ------------------------------
-
+# --- Settings ---
 class SettingsIn(BaseModel):
     name: str
     temp_min: float
@@ -45,31 +31,32 @@ class SettingsIn(BaseModel):
     hum_max: float
     soil_min: int
 
-
 class SettingsOut(SettingsIn):
+    id: int
     owner: str
 
-    class Config:
-        from_attributes = True  # ✅ Pydantic v2
+# --- Auth ---
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    is_first_login: bool
 
-# ------------------------------
-# Change Password Schema (Pydantic v2 style)
-# ------------------------------
+class LogoutResponse(BaseModel):
+    message: str
 
-PasswordStr = Annotated[str, lambda v: (
-    re.fullmatch(r'^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$', v)
-    or ValueError("Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.")
-)]
+PasswordStr = str
 
 class ChangePasswordRequest(BaseModel):
     new_password: PasswordStr
     confirm_password: str
 
-    @field_validator('confirm_password')
+    @field_validator("confirm_password")
     @classmethod
     def passwords_match(cls, v, info):
-        new_pw = info.data.get('new_password')
-        if v != new_pw:
+        if v != info.data.get("new_password"):
             raise ValueError("Passwords do not match")
         return v

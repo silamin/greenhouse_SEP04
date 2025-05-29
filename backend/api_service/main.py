@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api_service.interfaces.http.sensors import router as sensors
-from api_service.interfaces.http.auth import router as auth
-from api_service.interfaces.http.settings import router as settings
+
+from db import engine, Base
+from adapters.db import models  # noqa: F401
+from interfaces.http.routers import auth, sensors, settings
 
 app = FastAPI(title="Greenhouse Cloud API")
-# ✅ Enable CORS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,11 +15,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Include routers
-app.include_router(auth)
-app.include_router(sensors)
-app.include_router(settings)  # <- This must exist!
+# Create tables
+Base.metadata.create_all(bind=engine)
 
+# Include Routers
+app.include_router(auth.router)
+app.include_router(sensors.router)
+app.include_router(settings.router)
 
 @app.get("/health")
 def health():

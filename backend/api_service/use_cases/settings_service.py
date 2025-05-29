@@ -1,15 +1,12 @@
-from common.models import GreenhouseSettings
-from api_service.interfaces.http.schemas import SettingsOut
-
+from domain.entities import GreenhouseSettings
+from adapters.db.repositories import SettingsRepository
 
 class SettingsService:
-    def __init__(self, repo):
+    def __init__(self, repo: SettingsRepository):
         self.repo = repo
 
-    def get(self, owner) -> SettingsOut | None:
-        row = self.repo.get(owner)  # SQLAlchemy model
-        return None if row is None else SettingsOut.from_orm(row)
+    def get(self, owner: str) -> GreenhouseSettings | None:
+        return self.repo.get(owner)
 
-    def save(self, s: GreenhouseSettings) -> SettingsOut:
-        row = self.repo.upsert(s)  # SQLAlchemy model
-        return SettingsOut.from_orm(row)
+    def save(self, gh: GreenhouseSettings) -> GreenhouseSettings:
+        return self.repo.upsert(gh)

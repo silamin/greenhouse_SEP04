@@ -19,13 +19,6 @@ class SensorReading:
 
 
 @dataclass
-class DeviceCommand:
-    device: str
-    action: str
-    timestamp: Optional[datetime] = None
-
-
-@dataclass
 class GreenhouseSettings:
     owner: str
     name: str

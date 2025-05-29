@@ -1,4 +1,3 @@
-# .github/workflows/deploy-api.yml
 name: Deploy API Service to ECS
 
 on:
@@ -12,6 +11,9 @@ env:
   ECR_ACCOUNT: "067826606836"
   CLUSTER: upbeat-crocodile-7y9smz
   SERVICE: api-service-service-u6j0wnwq
+  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-service-tg/025c84a5c1124fd9
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_CHANNEL: "#starla-deployments"
 
 jobs:
   deploy:
@@ -36,9 +38,9 @@ jobs:
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/api-service:${{ github.sha }}
           echo "Pushing to $IMAGE_URI"
           docker build \
-          -t $IMAGE_URI \
-          -f backend/api_service/Dockerfile \
-          backend/api_service
+            -t $IMAGE_URI \
+            -f backend/api_service/Dockerfile \
+            backend/api_service
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
 
@@ -51,9 +53,63 @@ jobs:
           image:           ${{ steps.build.outputs.IMAGE_URI }}
 
       - name: Deploy to ECS
+        id: ecs-deploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition:            ${{ steps.render.outputs.task-definition }}
           service:                    ${{ env.SERVICE }}
           cluster:                    ${{ env.CLUSTER }}
           wait-for-service-stability: true
+
+  health-check-api:
+    name: API Service Health Check & Auto-Deregister
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Get API ALB DNS
+        id: get-alb
+        run: |
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --query "LoadBalancers[?contains(LoadBalancerName,'api-service-alb-v1')].DNSName | [0]" \
+            --output text)
+          echo "API_ALB_URL=http://$ALB_DNS" >> $GITHUB_ENV
+
+      - name: Check API /health via ALB
+        id: api-health
+        uses: jtalk/url-health-check-action@v4
+        continue-on-error: true
+        with:
+          url: ${{ env.API_ALB_URL }}/health
+          max-attempts: 3
+          retry-delay: 5s
+
+      - name: Deregister all targets on failure
+        if: steps.api-health.outcome != 'success'
+        run: |
+          echo "Health check failed; deregistering all targets"
+          aws elbv2 describe-target-health \
+            --target-group-arn ${{ env.TARGET_GROUP_ARN }} \
+            --query 'TargetHealthDescriptions[].Target.Id' \
+            --output text | \
+          xargs -n1 -I {} aws elbv2 deregister-targets \
+            --target-group-arn ${{ env.TARGET_GROUP_ARN }} \
+            --targets Id={}
+
+      - name: Notify Slack of API Health Status
+        uses: act10ns/slack@v2
+        with:
+          webhook-url: ${{ env.SLACK_WEBHOOK_URL }}
+          channel:     ${{ env.SLACK_CHANNEL }}
+          status:      ${{ steps.api-health.outcome }}
+          message: |
+            ${{ steps.api-health.outcome == 'success' && ' API is healthy!' || ' API is down — targets removed!' }}
+            *Service*: api-service  
+            *URL*: ${{ env.API_ALB_URL }}/health

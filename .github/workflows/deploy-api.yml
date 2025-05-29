@@ -11,7 +11,7 @@ env:
   AWS_REGION: eu-north-1
   ECR_ACCOUNT: "067826606836"
   CLUSTER: upbeat-crocodile-7y9smz
-  SERVICE: api
+  SERVICE: api-service-service-u6j0wnwq
 
 jobs:
   deploy:

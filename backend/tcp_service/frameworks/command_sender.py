@@ -1,6 +1,6 @@
 import os, socket
 
-HOST = os.getenv("DEVICE_HOST", "iot-device")
+HOST = os.getenv("DEVICE_HOST", "127.0.0.1")
 PORT = int(os.getenv("DEVICE_PORT", 1234))
 
 class CommandSender:

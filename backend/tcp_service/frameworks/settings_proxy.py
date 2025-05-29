@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from adapters.db.models import SettingsDB
 from domain.entities import GreenhouseSettings
 
-_DATABASE_URL = os.getenv("DATABASE_URL")
+_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 engine = create_engine(_DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 

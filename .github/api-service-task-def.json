@@ -52,7 +52,7 @@
         { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
+        { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@127.0.0.1:5432/greenhouse" },
         { "name": "JWT_SECRET", "value": "dev-secret-change-me" }
       ],
       "healthCheck": {

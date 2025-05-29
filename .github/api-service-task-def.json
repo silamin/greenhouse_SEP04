@@ -52,11 +52,17 @@
         { "containerPort": 8000, "protocol": "tcp" }
       ],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@127.0.0.1:5432/greenhouse" },
-        { "name": "JWT_SECRET", "value": "dev-secret-change-me" }
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://postgres:postgres@127.0.0.1:5432/greenhouse"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "dev-secret-change-me"
+        }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -13,8 +15,12 @@ services:
     build:
       context: ./backend/api_service
       dockerfile: Dockerfile
+    # instead of the top-level .env, explicitly load the service’s .env
     env_file:
-      - .env
+      - backend/api_service/.env
+    # override only DATABASE_URL to point at localhost
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/greenhouse
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,7 +32,7 @@ services:
       context: ./backend/tcp_service
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - backend/tcp_service/.env
     ports:
       - "9000:9000"
 
@@ -36,7 +42,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    environment:
+    env_file:
       - .env
 
 volumes:

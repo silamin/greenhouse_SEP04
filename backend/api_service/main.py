@@ -23,6 +23,7 @@ app.include_router(auth.router)
 app.include_router(sensors.router)
 app.include_router(settings.router)
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

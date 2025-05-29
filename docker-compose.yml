@@ -19,7 +19,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "80:80"
+      - "8000:8000"
 
   tcp_service:
     build:
@@ -31,7 +31,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "9000:9000"
 
   frontend:
     build:

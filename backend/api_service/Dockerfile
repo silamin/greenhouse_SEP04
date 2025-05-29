@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # copy your application code
 COPY . ./
 
-EXPOSE 80
+EXPOSE 8000
 
 # Healthcheck against your /health endpoint
 HEALTHCHECK --interval=30s \

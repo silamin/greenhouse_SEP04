@@ -36,9 +36,9 @@ jobs:
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/api-service:${{ github.sha }}
           echo "Pushing to $IMAGE_URI"
           docker build \
-            -t $IMAGE_URI \
-            -f backend/api_service/Dockerfile \
-            backend
+          -t $IMAGE_URI \
+          -f backend/api_service/Dockerfile \
+          backend/api_service
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
 

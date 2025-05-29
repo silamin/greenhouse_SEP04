@@ -53,11 +53,10 @@
       ],
       "environment": [
         { "name": "DATABASE_URL", "value": "postgresql://postgres:postgres@postgres:5432/greenhouse" },
-        { "name": "SEED_MOCK_DATA", "value": "true" },
         { "name": "JWT_SECRET", "value": "dev-secret-change-me" }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://api-service-alb-v1-1967742450.eu-north-1.elb.amazonaws.com//health || exit 1"],
+        "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,

@@ -229,7 +229,7 @@ resource "aws_ecs_task_definition" "api_task" {
 
 # 7) ECS Service (API)
 resource "aws_ecs_service" "api_svc" {
-  name            = "api-cluster"
+  name            = "api-service"
   cluster         = aws_ecs_cluster.api_cluster.id
   task_definition = aws_ecs_task_definition.api_task.arn
   launch_type     = "FARGATE"

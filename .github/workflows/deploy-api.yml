@@ -11,7 +11,7 @@ on:
 env:
   AWS_REGION: eu-north-1
   ECR_ACCOUNT: "067826606836"
-  CLUSTER: api-cluster
+  CLUSTER: greenhouse-cluster
   SERVICE: api-service
   TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-tg/f41b93d1a80368ac
 

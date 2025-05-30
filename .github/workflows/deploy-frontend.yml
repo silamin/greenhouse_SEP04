@@ -19,7 +19,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
-      fe_image_uri: ${{ steps.build.outputs.IMAGE_URI }}
+      fe_image_uri: ${{ steps.build.outputs.image_uri }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

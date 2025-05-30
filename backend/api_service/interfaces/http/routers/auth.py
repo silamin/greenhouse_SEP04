@@ -14,6 +14,7 @@ from security import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.post("/token", response_model=LoginResponse)
 def login(payload: LoginRequest, db=Depends(db_session)):
     user_repo = UserRepository(db)
@@ -32,6 +33,7 @@ def login(payload: LoginRequest, db=Depends(db_session)):
         is_first_login=user.is_first_login
     )
 
+
 @router.post("/logout", response_model=LogoutResponse)
 def logout(ctx=Depends(get_current_user), db=Depends(db_session)):
     _, jti = ctx["username"], ctx["jti"]
@@ -40,11 +42,12 @@ def logout(ctx=Depends(get_current_user), db=Depends(db_session)):
     auth.revoke_token(jti)
     return LogoutResponse(message=f"User '{ctx['username']}' logged out.")
 
+
 @router.post("/change-password", response_model=LogoutResponse)
 def change_password(
-    payload: ChangePasswordRequest,
-    ctx=Depends(get_current_user),
-    db=Depends(db_session)
+        payload: ChangePasswordRequest,
+        ctx=Depends(get_current_user),
+        db=Depends(db_session)
 ):
     auth = AuthService(UserRepository(db), TokenBlacklistRepository(db))
     auth.change_password(ctx["username"], payload.new_password)

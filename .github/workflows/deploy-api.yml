@@ -19,7 +19,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
-      api_image_uri: ${{ steps.build.outputs.IMAGE_URI }}
+      api_image_tag: ${{ steps.build.outputs.image_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,10 +37,12 @@ jobs:
       - name: Build & push API image
         id: build
         run: |
-          IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ github.sha }}
+          TAG=${GITHUB_SHA}
+          IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${TAG}
           docker build -t $IMAGE_URI -f backend/api_service/Dockerfile backend/api_service
           docker push $IMAGE_URI
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
+          # export only the SHA tag
+          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
 
   deploy:
     needs: build-and-push
@@ -62,10 +64,9 @@ jobs:
         with:
           task-definition: .github/api-service-task-def.json
           container-name:  api-service
-          image:           ${{ needs.build-and-push.outputs.api_image_uri }}
+          image:           ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ needs.build-and-push.outputs.api_image_tag }}
 
       - name: Deploy to ECS
-        id: ecs-deploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition:            ${{ steps.render.outputs.task-definition }}

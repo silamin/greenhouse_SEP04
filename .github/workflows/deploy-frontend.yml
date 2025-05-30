@@ -13,7 +13,7 @@ env:
   ECR_ACCOUNT: "067826606836"
   CLUSTER: api-cluster
   SERVICE: frontend-service
-  API_URL: "http://api-alb-826161495.eu-north-1.elb.amazonaws.com"
+  API_URL: "http://api-alb-468565609.eu-north-1.elb.amazonaws.com"
 
 jobs:
   build-and-push:
@@ -40,7 +40,7 @@ jobs:
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ github.sha }}
           docker build -t $IMAGE_URI -f my-app/Dockerfile my-app
           docker push $IMAGE_URI
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
   deploy:
     needs: build-and-push

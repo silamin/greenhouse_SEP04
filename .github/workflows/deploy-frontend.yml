@@ -13,7 +13,8 @@ env:
   ECR_ACCOUNT: "067826606836"
   CLUSTER: greenhouse-cluster
   SERVICE: frontend-service
-  API_URL: "http://api-alb-984728201.eu-north-1.elb.amazonaws.com"
+  API_URL: "http://api-alb-187730507.eu-north-1.elb.amazonaws.com"
+  FRONTEND_TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/frontend-tg/2bba74d087528619
 
 jobs:
   build-and-push:
@@ -41,7 +42,6 @@ jobs:
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${TAG}
           docker build -t $IMAGE_URI -f my-app/Dockerfile my-app
           docker push $IMAGE_URI
-          # export only the SHA tag as an output
           echo "image_tag=$TAG" >> $GITHUB_OUTPUT
 
   deploy:
@@ -62,9 +62,9 @@ jobs:
         id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: .github/frontend-task-def.json
-          container-name:  frontend-service
-          image:           ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ needs.build-and-push.outputs.fe_image_tag }}
+          task-definition:       .github/frontend-task-def.json
+          container-name:        frontend-service
+          image:                 ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ needs.build-and-push.outputs.fe_image_tag }}
           environment-variables: |
             API_URL=${{ env.API_URL }}
 
@@ -75,3 +75,10 @@ jobs:
           service:                    ${{ env.SERVICE }}
           cluster:                    ${{ env.CLUSTER }}
           wait-for-service-stability: true
+
+      - name: Attach ALB target group
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER }} \
+            --service ${{ env.SERVICE }} \
+            --load-balancers targetGroupArn=${{ env.FRONTEND_TARGET_GROUP_ARN }},containerName=frontend-service,containerPort=3000

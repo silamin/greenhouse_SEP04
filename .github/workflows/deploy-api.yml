@@ -13,7 +13,7 @@ env:
   ECR_ACCOUNT: "067826606836"
   CLUSTER: greenhouse-cluster
   SERVICE: api-service
-  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-tg/f41b93d1a80368ac
+  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-tg/92d0c1195227a48c
 
 jobs:
   build-and-push:
@@ -41,7 +41,6 @@ jobs:
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${TAG}
           docker build -t $IMAGE_URI -f backend/api_service/Dockerfile backend/api_service
           docker push $IMAGE_URI
-          # export only the SHA tag
           echo "image_tag=$TAG" >> $GITHUB_OUTPUT
 
   deploy:
@@ -73,3 +72,10 @@ jobs:
           service:                    ${{ env.SERVICE }}
           cluster:                    ${{ env.CLUSTER }}
           wait-for-service-stability: true
+
+      - name: Attach ALB target group
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER }} \
+            --service ${{ env.SERVICE }} \
+            --load-balancers targetGroupArn=${{ env.TARGET_GROUP_ARN }},containerName=api-service,containerPort=8000

@@ -1,3 +1,5 @@
+# variables.tf
+
 variable "vpc_id" {
   description = "The VPC in which to create resources"
   type        = string
@@ -13,22 +15,7 @@ variable "api_image_uri" {
   type        = string
 }
 
-variable "database_url" {
-  description = "Connection string for Postgres"
-  type        = string
-}
-
-variable "jwt_secret" {
-  description = "JWT secret for the API"
-  type        = string
-}
-
-variable "api_auth_user" {
-  description = "Basic auth username for the API"
-  type        = string
-}
-
-variable "api_auth_pass" {
-  description = "Basic auth password for the API"
+variable "frontend_image_uri" {
+  description = "ECR image URI for the Frontend container"
   type        = string
 }

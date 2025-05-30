@@ -1,25 +1,25 @@
-name: Deploy API Service to ECS
+name: Deploy Frontend Service to ECS
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'backend/api_service/**'
-      - '.github/api-service-task-def.json'
+      - 'my-app/**'
+      - '.github/frontend-task-def.json'
   workflow_dispatch:
 
 env:
   AWS_REGION: eu-north-1
   ECR_ACCOUNT: "067826606836"
   CLUSTER: api-cluster
-  SERVICE: api-service
-  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-tg/f41b93d1a80368ac
+  SERVICE: frontend-service
+  API_URL: "http://api-alb-826161495.eu-north-1.elb.amazonaws.com"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
-      api_image_uri: ${{ steps.build.outputs.IMAGE_URI }}
+      fe_image_uri: ${{ steps.build.outputs.IMAGE_URI }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,11 +34,11 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build & push API image
+      - name: Build & push Frontend image
         id: build
         run: |
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${{ github.sha }}
-          docker build -t $IMAGE_URI -f backend/api_service/Dockerfile backend/api_service
+          docker build -t $IMAGE_URI -f my-app/Dockerfile my-app
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
 
@@ -60,9 +60,11 @@ jobs:
         id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: .github/api-service-task-def.json
-          container-name:  api-service
-          image:           ${{ needs.build-and-push.outputs.api_image_uri }}
+          task-definition: .github/frontend-task-def.json
+          container-name:  frontend-service
+          image:           ${{ needs.build-and-push.outputs.fe_image_uri }}
+          environment-variables: |
+            API_URL=${{ env.API_URL }}
 
       - name: Deploy to ECS
         id: ecs-deploy

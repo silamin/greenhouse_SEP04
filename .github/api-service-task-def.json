@@ -13,11 +13,6 @@
       "name": "postgres",
       "image": "postgres:15",
       "essential": true,
-      "environment": [
-        { "name": "POSTGRES_USER", "value": "postgres" },
-        { "name": "POSTGRES_PASSWORD", "value": "postgres" },
-        { "name": "POSTGRES_DB", "value": "greenhouse" }
-      ],
       "mountPoints": [
         { "sourceVolume": "pgdata", "containerPath": "/var/lib/postgresql/data" }
       ],
@@ -50,16 +45,6 @@
       ],
       "portMappings": [
         { "containerPort": 8000, "protocol": "tcp" }
-      ],
-      "environment": [
-        {
-          "name": "DATABASE_URL",
-          "value": "postgresql://postgres:postgres@127.0.0.1:5432/greenhouse"
-        },
-        {
-          "name": "JWT_SECRET",
-          "value": "dev-secret-change-me"
-        }
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"],

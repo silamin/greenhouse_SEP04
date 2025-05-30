@@ -5,7 +5,3 @@ subnet_ids    = [
   "subnet-0e5436a76e48f4a6f",
 ]
 api_image_uri = "067826606836.dkr.ecr.eu-north-1.amazonaws.com/api-service:YOUR_TAG"
-database_url  = "postgresql://postgres:postgres@postgres:5432/greenhouse"
-jwt_secret    = "dev-secret-change-me"
-api_auth_user = "tcp_worker"
-api_auth_pass = "supersecret"

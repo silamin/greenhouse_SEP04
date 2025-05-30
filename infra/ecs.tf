@@ -2,7 +2,7 @@ provider "aws" {
   region = "eu-north-1"
 }
 
-# 1) Security Group for ALB
+# 1) ALB Security Group
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP"
@@ -23,7 +23,7 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# 2) Security Group for ECS tasks
+# 2) ECS Security Group
 resource "aws_security_group" "ecs_sg" {
   name        = "ecs-sg"
   description = "Allow traffic from ALB"
@@ -58,8 +58,6 @@ resource "aws_lb_target_group" "api_tg" {
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-
-  # Must be "ip" for awsvpc/Fargate
   target_type = "ip"
 
   health_check {
@@ -88,7 +86,7 @@ resource "aws_ecs_cluster" "api_cluster" {
   name = "api-cluster"
 }
 
-# 5) IAM Role for tasks
+# 5) IAM Role for ECS Tasks
 resource "aws_iam_role" "ecs_task_exec_role" {
   name               = "ecsTaskExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
@@ -104,12 +102,37 @@ data "aws_iam_policy_document" "ecs_task_assume" {
   }
 }
 
+# Attach ECS execution policy
 resource "aws_iam_role_policy_attachment" "exec_policy" {
   role       = aws_iam_role.ecs_task_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# 6) Task Definition
+# Attach policy to access SSM parameters
+resource "aws_iam_policy" "ssm_access" {
+  name = "ecs_ssm_read_access"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = ["ssm:GetParameters", "ssm:GetParameter"],
+        Resource = [
+          "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/*"
+        ]
+      }
+    ]
+  })
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role_policy_attachment" "ssm_access_attach" {
+  role       = aws_iam_role.ecs_task_exec_role.name
+  policy_arn = aws_iam_policy.ssm_access.arn
+}
+
+# 6) ECS Task Definition
 resource "aws_ecs_task_definition" "api_task" {
   family                   = "api-service"
   network_mode             = "awsvpc"
@@ -120,23 +143,47 @@ resource "aws_ecs_task_definition" "api_task" {
 
   container_definitions = jsonencode([
     {
-      name      = "api-service"
-      image     = var.api_image_uri
-      essential = true
+      name      = "api-service",
+      image     = var.api_image_uri,
+      essential = true,
       portMappings = [
         { containerPort = 8000, protocol = "tcp" }
-      ]
-      environment = [
-        { name = "DATABASE_URL",  value = var.database_url   },
-        { name = "JWT_SECRET",    value = var.jwt_secret     },
-        { name = "API_AUTH_USER", value = var.api_auth_user  },
-        { name = "API_AUTH_PASS", value = var.api_auth_pass  }
-      ]
+      ],
+      secrets = [
+        {
+          name      = "DATABASE_URL",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/database_url"
+        },
+        {
+          name      = "JWT_SECRET",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/jwt_secret"
+        },
+        {
+          name      = "API_AUTH_USER",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_user"
+        },
+        {
+          name      = "API_AUTH_PASS",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_pass"
+        },
+        {
+          name      = "POSTGRES_USER",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user"
+        },
+        {
+          name      = "POSTGRES_PASSWORD",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password"
+        },
+        {
+          name      = "POSTGRES_DB",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db"
+        }
+      ],
       logConfiguration = {
-        logDriver = "awslogs"
+        logDriver = "awslogs",
         options = {
-          "awslogs-group"         = "/ecs/api-service"
-          "awslogs-region"        = "eu-north-1"
+          "awslogs-group"         = "/ecs/api-service",
+          "awslogs-region"        = "eu-north-1",
           "awslogs-stream-prefix" = "ecs"
         }
       }

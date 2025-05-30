@@ -4,25 +4,13 @@ provider "aws" {
 
 # 1) Security Group for ALB
 resource "aws_security_group" "alb_sg" {
-  name        = "ecs-services-sg"
-  description = "Allow ports 8000, 3000, 9000 for ECS services"
+  name        = "alb-sg"
+  description = "Allow HTTP"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 9000
-    to_port     = 9000
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -63,44 +51,27 @@ resource "aws_lb" "api_alb" {
   load_balancer_type = "application"
   subnets            = var.subnet_ids
   security_groups    = [aws_security_group.alb_sg.id]
-
-  # Optional tuning
-  idle_timeout                         = 60
-  enable_http2                         = true
-  desync_mitigation_mode               = "defensive"
-  enable_cross_zone_load_balancing     = true
-
-  lifecycle {
-    ignore_changes = [
-      # AWS‐generated; keep Terraform from diffing these
-      dns_name,
-      arn_suffix,
-      zone_id,
-      id,
-    ]
-  }
 }
 
-# 3a) Target Group (imported)
 resource "aws_lb_target_group" "api_tg" {
-  name        = "api-service-tg"  # matches existing
+  name        = "api-tg"
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
+
+  # Must be "ip" for awsvpc/Fargate
   target_type = "ip"
 
   health_check {
     path                = "/health"
-    port                = 8000
     interval            = 30
     timeout             = 5
-    healthy_threshold   = 5
-    unhealthy_threshold = 2
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
     matcher             = "200"
   }
 }
 
-# 3b) Listener
 resource "aws_lb_listener" "api_listener" {
   load_balancer_arn = aws_lb.api_alb.arn
   port              = 80
@@ -117,13 +88,24 @@ resource "aws_ecs_cluster" "api_cluster" {
   name = "api-cluster"
 }
 
-# 5) Existing Execution Role
-data "aws_iam_role" "ecs_task_exec_role" {
-  name = "ecsTaskExecutionRole"
+# 5) IAM Role for tasks
+resource "aws_iam_role" "ecs_task_exec_role" {
+  name               = "ecsTaskExecutionRole"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+}
+
+data "aws_iam_policy_document" "ecs_task_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "exec_policy" {
-  role       = data.aws_iam_role.ecs_task_exec_role.name
+  role       = aws_iam_role.ecs_task_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
@@ -134,7 +116,7 @@ resource "aws_ecs_task_definition" "api_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn       = data.aws_iam_role.ecs_task_exec_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([
     {
@@ -145,10 +127,10 @@ resource "aws_ecs_task_definition" "api_task" {
         { containerPort = 8000, protocol = "tcp" }
       ]
       environment = [
-        { name = "DATABASE_URL",  value = var.database_url  },
-        { name = "JWT_SECRET",    value = var.jwt_secret    },
-        { name = "API_AUTH_USER", value = var.api_auth_user },
-        { name = "API_AUTH_PASS", value = var.api_auth_pass },
+        { name = "DATABASE_URL",  value = var.database_url   },
+        { name = "JWT_SECRET",    value = var.jwt_secret     },
+        { name = "API_AUTH_USER", value = var.api_auth_user  },
+        { name = "API_AUTH_PASS", value = var.api_auth_pass  }
       ]
       logConfiguration = {
         logDriver = "awslogs"

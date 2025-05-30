@@ -9,9 +9,9 @@ on:
 env:
   AWS_REGION: eu-north-1
   ECR_ACCOUNT: "067826606836"
-  CLUSTER: upbeat-crocodile-7y9smz
-  SERVICE: api-service-service-u6j0wnwq
-  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-service-tg/025c84a5c1124fd9
+  CLUSTER: api-cluster
+  SERVICE: api-service
+  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-north-1:067826606836:targetgroup/api-tg/f41b93d1a80368ac
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   SLACK_CHANNEL: "#starla-deployments"
 

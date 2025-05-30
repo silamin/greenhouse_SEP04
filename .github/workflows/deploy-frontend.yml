@@ -13,7 +13,7 @@ env:
   ECR_ACCOUNT: "067826606836"
   CLUSTER: greenhouse-cluster
   SERVICE: frontend-service
-  API_URL: "http://api-alb-1388928784.eu-north-1.elb.amazonaws.com"
+  API_URL: "http://api-alb-984728201.eu-north-1.elb.amazonaws.com"
 
 jobs:
   build-and-push:

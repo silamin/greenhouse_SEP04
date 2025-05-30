@@ -9,6 +9,9 @@
     {
       "name": "frontend-service",
       "image": "${IMAGE_URI}",
+
+
+
       "essential": true,
       "portMappings": [{ "containerPort": 3000, "protocol": "tcp" }],
       "environment": [{ "name": "API_URL", "value": "${API_URL}" }],

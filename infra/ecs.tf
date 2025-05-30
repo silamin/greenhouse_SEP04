@@ -85,7 +85,7 @@ resource "aws_lb_listener" "api_listener" {
 
 # 4) ECS Cluster
 resource "aws_ecs_cluster" "api_cluster" {
-  name = "api-cluster"
+  name = "greenhouse-cluster"
 }
 
 # 5) IAM Role for ECS Tasks + SSM Access

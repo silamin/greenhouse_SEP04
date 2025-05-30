@@ -1,5 +1,3 @@
-# ecs.tf
-
 provider "aws" {
   region = "eu-north-1"
 }
@@ -139,87 +137,97 @@ resource "aws_ecs_task_definition" "api_task" {
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
-    container_definitions = jsonencode([
-
+  container_definitions = jsonencode([
     # ─── Postgres container ───────────────────────────────────────────
     {
-      name         = "postgres",
-      image        = "postgres:15",
-      essential    = true,
-      mountPoints  = [{ sourceVolume = "pgdata", containerPath = "/var/lib/postgresql/data" }],
-      portMappings = [{ containerPort = 5432, protocol = "tcp" }],
+      name         = "postgres"
+      image        = "postgres:15"
+      essential    = true
+      mountPoints  = [{ sourceVolume = "pgdata", containerPath = "/var/lib/postgresql/data" }]
+      portMappings = [{ containerPort = 5432, protocol = "tcp" }]
+
+      # non-sensitive environment
       environment = [
-        # these pull your Postgres credentials & db name from SSM
-        {
-          name      = "POSTGRES_USER",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user",
-        },
-        {
-          name      = "POSTGRES_PASSWORD",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password",
-        },
-        {
-          name      = "POSTGRES_DB",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db",
-        }
-      ],
-      healthCheck = {
-        command     = ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"],
-        interval    = 5,
-        timeout     = 2,
-        retries     = 5,
-        startPeriod = 10,
-      },
-      logConfiguration = {
-        logDriver = "awslogs",
-        options = {
-          "awslogs-group"         = "/ecs/api-service",
-          "awslogs-region"        = "eu-north-1",
-          "awslogs-stream-prefix" = "postgres",
-          "awslogs-create-group"  = "true",
-        },
-      },
-    },
-    {
-      name         = "api-service",
-      image        = var.api_image_uri,
-      essential    = true,
-      dependsOn    = [{ containerName = "postgres", condition = "HEALTHY" }],
-      portMappings = [{ containerPort = 8000, protocol = "tcp" }],
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"],
-        interval    = 30,
-        timeout     = 5,
-        retries     = 3,
-        startPeriod = 30,
-      },
+        { name = "PGDATA", value = "/var/lib/postgresql/data" }
+      ]
+
+      # SSM-backed secrets
       secrets = [
         {
-          name      = "DATABASE_URL",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/database_url",
+          name      = "POSTGRES_USER"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user"
         },
         {
-          name      = "JWT_SECRET",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/jwt_secret",
+          name      = "POSTGRES_PASSWORD"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password"
         },
         {
-          name      = "API_AUTH_USER",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_user",
-        },
-        {
-          name      = "API_AUTH_PASS",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_pass",
+          name      = "POSTGRES_DB"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db"
         }
-      ],
+      ]
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+        interval    = 5
+        timeout     = 2
+        retries     = 5
+        startPeriod = 10
+      }
+
       logConfiguration = {
-        logDriver = "awslogs",
+        logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/api-service",
-          "awslogs-region"        = "eu-north-1",
-          "awslogs-stream-prefix" = "ecs",
-        },
-      },
+          "awslogs-group"         = "/ecs/api-service"
+          "awslogs-region"        = "eu-north-1"
+          "awslogs-stream-prefix" = "postgres"
+          "awslogs-create-group"  = "true"
+        }
+      }
     },
+    # ─── API container ─────────────────────────────────────────────────
+    {
+      name         = "api-service"
+      image        = var.api_image_uri
+      essential    = true
+      dependsOn    = [{ containerName = "postgres", condition = "HEALTHY" }]
+      portMappings = [{ containerPort = 8000, protocol = "tcp" }]
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 30
+      }
+
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/database_url"
+        },
+        {
+          name      = "JWT_SECRET"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/jwt_secret"
+        },
+        {
+          name      = "API_AUTH_USER"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_user"
+        },
+        {
+          name      = "API_AUTH_PASS"
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_pass"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/api-service"
+          "awslogs-region"        = "eu-north-1"
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+    }
   ])
 
   volume {
@@ -321,32 +329,32 @@ resource "aws_ecs_task_definition" "frontend_task" {
 
   container_definitions = jsonencode([
     {
-      name         = "frontend-service",
-      image        = var.frontend_image_uri,
-      essential    = true,
-      portMappings = [{ containerPort = 3000, protocol = "tcp" }],
+      name         = "frontend-service"
+      image        = var.frontend_image_uri
+      essential    = true
+      portMappings = [{ containerPort = 3000, protocol = "tcp" }]
       environment  = [
         {
-          name  = "API_URL",
-          value = "http://${aws_lb.api_alb.dns_name}",
-        },
-      ],
+          name  = "API_URL"
+          value = "http://${aws_lb.api_alb.dns_name}"
+        }
+      ]
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"],
-        interval    = 30,
-        timeout     = 5,
-        retries     = 3,
-        startPeriod = 15,
-      },
+        command     = ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 15
+      }
       logConfiguration = {
-        logDriver = "awslogs",
+        logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/frontend-service",
-          "awslogs-region"        = "eu-north-1",
-          "awslogs-stream-prefix" = "ecs",
-        },
-      },
-    },
+          "awslogs-group"         = "/ecs/frontend-service"
+          "awslogs-region"        = "eu-north-1"
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+    }
   ])
 }
 
@@ -371,6 +379,6 @@ resource "aws_ecs_service" "frontend_svc" {
   }
 
   depends_on = [
-    aws_lb_listener.frontend_listener,
+    aws_lb_listener.frontend_listener
   ]
 }

@@ -139,15 +139,32 @@ resource "aws_ecs_task_definition" "api_task" {
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
-  container_definitions = jsonencode([
+    container_definitions = jsonencode([
+
+    # ─── Postgres container ───────────────────────────────────────────
     {
       name         = "postgres",
       image        = "postgres:15",
       essential    = true,
       mountPoints  = [{ sourceVolume = "pgdata", containerPath = "/var/lib/postgresql/data" }],
       portMappings = [{ containerPort = 5432, protocol = "tcp" }],
+      environment = [
+        # these pull your Postgres credentials & db name from SSM
+        {
+          name      = "POSTGRES_USER",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user",
+        },
+        {
+          name      = "POSTGRES_PASSWORD",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password",
+        },
+        {
+          name      = "POSTGRES_DB",
+          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db",
+        }
+      ],
       healthCheck = {
-        command     = ["CMD-SHELL", "pg_isready -U postgres"],
+        command     = ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"],
         interval    = 5,
         timeout     = 2,
         retries     = 5,
@@ -192,19 +209,7 @@ resource "aws_ecs_task_definition" "api_task" {
         {
           name      = "API_AUTH_PASS",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_pass",
-        },
-        {
-          name      = "POSTGRES_USER",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user",
-        },
-        {
-          name      = "POSTGRES_PASSWORD",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password",
-        },
-        {
-          name      = "POSTGRES_DB",
-          valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db",
-        },
+        }
       ],
       logConfiguration = {
         logDriver = "awslogs",
@@ -224,7 +229,7 @@ resource "aws_ecs_task_definition" "api_task" {
 
 # 7) ECS Service (API)
 resource "aws_ecs_service" "api_svc" {
-  name            = "api-service"
+  name            = "greenhouse-cluster"
   cluster         = aws_ecs_cluster.api_cluster.id
   task_definition = aws_ecs_task_definition.api_task.arn
   launch_type     = "FARGATE"

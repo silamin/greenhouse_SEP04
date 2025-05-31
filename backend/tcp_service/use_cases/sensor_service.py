@@ -1,14 +1,13 @@
 import json
 from datetime import datetime
-from domain.entities import SensorReading, DeviceCommand
+
+from domain.entities import SensorReading, DeviceCommand, GreenhouseSettings
 from adapters.api_client import APIClient
-from frameworks.settings_proxy import SettingsProxy
 from use_cases.command_service import CommandService
 
 class SensorService:
-    def __init__(self, cmd_svc: CommandService, settings_proxy: SettingsProxy, api_client: APIClient):
+    def __init__(self, cmd_svc: CommandService, api_client: APIClient):
         self.cmd_svc = cmd_svc
-        self.settings = settings_proxy
         self.api = api_client
 
     async def process_incoming_json(self, raw: str, owner: str):
@@ -17,24 +16,28 @@ class SensorService:
 
         reading = SensorReading(
             timestamp=datetime.utcnow(),
-            temp=d["temp"], hum=d["hum"],
-            soil=d["soil"], light=d["light"],
-            dist=d["dist"], motion=d.get("motion", False),
-            acc_x=acc[0], acc_y=acc[1], acc_z=acc[2]
+            temp=d["temp"],
+            hum=d["hum"],
+            soil=d["soil"],
+            light=d["light"],
+            dist=d["dist"],
+            motion=d.get("motion", False),
+            acc_x=acc[0],
+            acc_y=acc[1],
+            acc_z=acc[2],
         )
 
-        # 1) send to API
+        # 1) send sensor reading to API
         await self.api.send_reading(reading)
 
-        # 2) threshold logic
-        self._check_thresholds(reading, owner)
+        # 2) fetch settings via API & apply threshold logic
+        settings = await self.api.get_settings(owner)
+        if settings:
+            self._check_thresholds(reading, settings)
+
         return reading
 
-    def _check_thresholds(self, r: SensorReading, owner: str):
-        s = self.settings.get(owner)
-        if not s:
-            return
-
+    def _check_thresholds(self, r: SensorReading, s: GreenhouseSettings):
         # Overheat
         if r.temp > s.temp_max:
             for _ in range(2):
@@ -68,5 +71,5 @@ class SensorService:
             self.cmd_svc.send_command(DeviceCommand("BUZZER", "BEEP"))
             self.cmd_svc.send_command(DeviceCommand("LED", "3 TOGGLE"))
 
-        # Display temperature
+        # Always display the current temperature
         self.cmd_svc.send_command(DeviceCommand("DISPLAY", str(int(r.temp))))

@@ -1,17 +1,19 @@
-import os, asyncio
+import os
+import asyncio
 import httpx
 from datetime import datetime, timedelta
 
-from domain.entities import SensorReading
+from domain.entities import SensorReading, GreenhouseSettings
 
-API_BASE    = os.getenv("API_BASE_URL",    "http://api_service:80")
-AUTH_USER   = os.getenv("API_AUTH_USER",   "tcp_worker")
-AUTH_PASS   = os.getenv("API_AUTH_PASS",   "supersecret")
-TOKEN_TTL   = int(os.getenv("API_TOKEN_TTL", "1800"))  # seconds
+API_BASE = os.getenv("API_BASE_URL", "http://api_service:80")
+AUTH_USER = os.getenv("API_AUTH_USER", "tcp_worker")
+AUTH_PASS = os.getenv("API_AUTH_PASS", "supersecret")
+TOKEN_TTL = int(os.getenv("API_TOKEN_TTL", "1800"))  # seconds
+
 
 class APIClient:
     def __init__(self):
-        self.client  = httpx.AsyncClient(base_url=API_BASE, timeout=5.0)
+        self.client = httpx.AsyncClient(base_url=API_BASE, timeout=5.0)
         self.token: str | None = None
         self.expires_at: datetime = datetime.utcnow()
         self._lock = asyncio.Lock()
@@ -61,3 +63,23 @@ class APIClient:
 
         resp.raise_for_status()
         return resp.json()
+
+    async def get_settings(self, owner: str) -> GreenhouseSettings | None:
+        await self._ensure_token()
+        resp = await self.client.get("/settings/")
+        if resp.status_code == 404:
+            return None
+
+        resp.raise_for_status()
+        body = resp.json()
+        return GreenhouseSettings(
+            owner=body["owner"],
+            name=body["name"],
+            temp_min=body["temp_min"],
+            temp_max=body["temp_max"],
+            light_min=body["light_min"],
+            light_max=body["light_max"],
+            hum_min=body["hum_min"],
+            hum_max=body["hum_max"],
+            soil_min=body["soil_min"],
+        )

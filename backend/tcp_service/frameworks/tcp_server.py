@@ -1,15 +1,21 @@
-import asyncio, json, logging
+import asyncio
+import json
+import logging
 
 from tcp_service.frameworks.command_sender import CommandSender
 from tcp_service.use_cases.command_service import CommandService
-from tcp_service.use_cases.sensor_service import SensorService
-from tcp_service.frameworks.settings_proxy import SettingsProxy  # still read‑only
+from adapters.api_client import APIClient
+from use_cases.sensor_service import SensorService  # updated import path if needed
 
 log = logging.getLogger("tcp_server")
 
 
 async def _handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    svc = SensorService(CommandService(CommandSender()), SettingsProxy())
+    # Instantiate SensorService with CommandService + APIClient (no SettingsProxy)
+    svc = SensorService(
+        CommandService(CommandSender()),
+        APIClient()
+    )
     peer = writer.get_extra_info("peername")
     log.info("Client %s connected", peer)
 

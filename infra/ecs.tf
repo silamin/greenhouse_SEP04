@@ -86,7 +86,7 @@ resource "aws_ecs_cluster" "api_cluster" {
   name = "greenhouse-cluster"
 }
 
-# 5) IAM Role for ECS Tasks + SSM Access
+# 5) IAM Role for ECS Tasks + SSM & KMS Access
 data "aws_iam_policy_document" "ecs_task_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -109,23 +109,33 @@ resource "aws_iam_role_policy_attachment" "exec_policy" {
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_iam_policy" "ssm_access" {
-  name = "ecs_ssm_read_access"
+# allow SSM GetParameter(s) and KMS decrypt on the default Parameter Store key
+resource "aws_iam_policy" "ssm_kms_access" {
+  name = "ecs_ssm_kms_read_access"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
         Effect   = "Allow",
-        Action   = ["ssm:GetParameters","ssm:GetParameter"],
+        Action   = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ],
         Resource = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["kms:Decrypt"],
+        # You can scope this narrower if you know the KMS key ARN (e.g. alias/aws/ssm)
+        Resource = "*"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ssm_access_attach" {
+resource "aws_iam_role_policy_attachment" "ssm_kms_attach" {
   role       = aws_iam_role.ecs_task_exec_role.name
-  policy_arn = aws_iam_policy.ssm_access.arn
+  policy_arn = aws_iam_policy.ssm_kms_access.arn
 }
 
 # 6) ECS Task Definition (API)
@@ -138,96 +148,100 @@ resource "aws_ecs_task_definition" "api_task" {
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([
+
     # ─── Postgres container ───────────────────────────────────────────
     {
-      name         = "postgres"
-      image        = "postgres:15"
-      essential    = true
-      mountPoints  = [{ sourceVolume = "pgdata", containerPath = "/var/lib/postgresql/data" }]
-      portMappings = [{ containerPort = 5432, protocol = "tcp" }]
+      name         = "postgres",
+      image        = "postgres:15",
+      essential    = true,
+      mountPoints  = [{ sourceVolume = "pgdata", containerPath = "/var/lib/postgresql/data" }],
+      portMappings = [{ containerPort = 5432, protocol = "tcp" }],
 
-      # non-sensitive environment
+      # only non-sensitive ENV here
       environment = [
         { name = "PGDATA", value = "/var/lib/postgresql/data" }
-      ]
+      ],
 
-      # SSM-backed secrets
+      # secrets must live under `secrets`
       secrets = [
         {
-          name      = "POSTGRES_USER"
+          name      = "POSTGRES_USER",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_user"
         },
         {
-          name      = "POSTGRES_PASSWORD"
+          name      = "POSTGRES_PASSWORD",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_password"
         },
         {
-          name      = "POSTGRES_DB"
+          name      = "POSTGRES_DB",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/pg_db"
         }
-      ]
+      ],
 
       healthCheck = {
-        command     = ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
-        interval    = 5
-        timeout     = 2
-        retries     = 5
-        startPeriod = 10
-      }
+        command     = ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"],
+        interval    = 5,
+        timeout     = 2,
+        retries     = 5,
+        startPeriod = 10,
+      },
 
       logConfiguration = {
-        logDriver = "awslogs"
+        logDriver = "awslogs",
         options = {
-          "awslogs-group"         = "/ecs/api-service"
-          "awslogs-region"        = "eu-north-1"
-          "awslogs-stream-prefix" = "postgres"
-          "awslogs-create-group"  = "true"
-        }
-      }
+          "awslogs-group"         = "/ecs/api-service",
+          "awslogs-region"        = "eu-north-1",
+          "awslogs-stream-prefix" = "postgres",
+          "awslogs-create-group"  = "true",
+        },
+      },
     },
+
     # ─── API container ─────────────────────────────────────────────────
     {
-      name         = "api-service"
-      image        = var.api_image_uri
-      essential    = true
-      dependsOn    = [{ containerName = "postgres", condition = "HEALTHY" }]
-      portMappings = [{ containerPort = 8000, protocol = "tcp" }]
+      name         = "api-service",
+      image        = var.api_image_uri,
+      essential    = true,
+      dependsOn    = [{ containerName = "postgres", condition = "HEALTHY" }],
+      portMappings = [{ containerPort = 8000, protocol = "tcp" }],
+
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 30
-      }
+        command     = ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"],
+        interval    = 30,
+        timeout     = 5,
+        retries     = 3,
+        startPeriod = 30,
+      },
 
       secrets = [
         {
-          name      = "DATABASE_URL"
+          name      = "DATABASE_URL",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/database_url"
         },
         {
-          name      = "JWT_SECRET"
+          name      = "JWT_SECRET",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/jwt_secret"
         },
         {
-          name      = "API_AUTH_USER"
+          name      = "API_AUTH_USER",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_user"
         },
         {
-          name      = "API_AUTH_PASS"
+          name      = "API_AUTH_PASS",
           valueFrom = "arn:aws:ssm:eu-north-1:${data.aws_caller_identity.current.account_id}:parameter/api/api_auth_pass"
         }
-      ]
+      ],
 
       logConfiguration = {
-        logDriver = "awslogs"
+        logDriver = "awslogs",
         options = {
-          "awslogs-group"         = "/ecs/api-service"
-          "awslogs-region"        = "eu-north-1"
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
+          "awslogs-group"         = "/ecs/api-service",
+          "awslogs-region"        = "eu-north-1",
+          "awslogs-stream-prefix" = "ecs",
+        },
+      },
+    },
+
   ])
 
   volume {
@@ -259,6 +273,7 @@ resource "aws_ecs_service" "api_svc" {
     aws_lb_listener.api_listener,
   ]
 }
+
 
 # 8) Frontend Security Group (allow from ALB)
 resource "aws_security_group" "frontend_sg" {

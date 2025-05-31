@@ -5,9 +5,7 @@
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::067826606836:role/ecsTaskExecutionRole",
-  "volumes": [
-    { "name": "pgdata" }
-  ],
+  "volumes": [{ "name": "pgdata" }],
   "containerDefinitions": [
     {
       "name": "postgres",
@@ -16,16 +14,24 @@
       "mountPoints": [
         { "sourceVolume": "pgdata", "containerPath": "/var/lib/postgresql/data" }
       ],
-      "portMappings": [
-        { "containerPort": 5432, "protocol": "tcp" }
+      "portMappings": [{ "containerPort": 5432, "protocol": "tcp" }],
+      "environment": [
+        { "name": "PGDATA", "value": "/var/lib/postgresql/data" }
       ],
-      "healthCheck": {
-        "command": ["CMD-SHELL", "pg_isready -U postgres"],
-        "interval": 5,
-        "timeout": 2,
-        "retries": 5,
-        "startPeriod": 10
-      },
+      "secrets": [
+        {
+          "name": "POSTGRES_USER",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/pg_user"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/pg_password"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/pg_db"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -34,25 +40,39 @@
           "awslogs-stream-prefix": "postgres",
           "awslogs-create-group": "true"
         }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"],
+        "interval": 5,
+        "timeout": 2,
+        "retries": 5,
+        "startPeriod": 10
       }
     },
     {
       "name": "api-service",
       "image": "${IMAGE_URI}",
       "essential": true,
-      "dependsOn": [
-        { "containerName": "postgres", "condition": "HEALTHY" }
+      "dependsOn": [{ "containerName": "postgres", "condition": "HEALTHY" }],
+      "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/database_url"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/jwt_secret"
+        },
+        {
+          "name": "API_AUTH_USER",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/api_auth_user"
+        },
+        {
+          "name": "API_AUTH_PASS",
+          "valueFrom": "arn:aws:ssm:eu-north-1:067826606836:parameter/api/api_auth_pass"
+        }
       ],
-      "portMappings": [
-        { "containerPort": 8000, "protocol": "tcp" }
-      ],
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 30
-      },
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -61,6 +81,13 @@
           "awslogs-stream-prefix": "ecs",
           "awslogs-create-group": "true"
         }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
       }
     }
   ]

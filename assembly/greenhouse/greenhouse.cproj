@@ -244,9 +244,15 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Debug\" />
     <Folder Include="drivers\" />
     <Folder Include="include\" />
     <Folder Include="lib\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="greenhouse.componentinfo.xml">
+      <SubType>compile</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
 </Project>

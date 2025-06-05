@@ -1,6 +1,7 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # ──────────────────────────────
   postgres:
     image: postgres:15
     env_file: .env
@@ -11,6 +12,7 @@ services:
       interval: 5s
       retries: 5
 
+  # ──────────────────────────────
   api:
     build:
       context: api
@@ -18,28 +20,30 @@ services:
     env_file:
       - api/.env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/greenhouse
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-greenhouse}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "8000:8000"
 
+  # ──────────────────────────────
   ml:
     build:
       context: ml
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8080:8080"
 
+  # ──────────────────────────────
   frontend:
     build:
       context: ./my-app
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     env_file:
       - .env
+    ports:
+      - "3000:3000"
 
 volumes:
   pgdata:

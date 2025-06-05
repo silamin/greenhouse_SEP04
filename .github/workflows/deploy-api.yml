@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'backend/api_service/**'
+      - 'api/**'
       - '.github/api-service-task-def.json'
   workflow_dispatch:
 
@@ -39,7 +39,7 @@ jobs:
         run: |
           TAG=${GITHUB_SHA}
           IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.SERVICE }}:${TAG}
-          docker build -t $IMAGE_URI -f backend/api_service/Dockerfile backend/api_service
+          docker build -t $IMAGE_URI -f api/Dockerfile api
           docker push $IMAGE_URI
           echo "image_tag=$TAG" >> $GITHUB_OUTPUT
 

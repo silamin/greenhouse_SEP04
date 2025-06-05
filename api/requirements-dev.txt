@@ -1,0 +1,13 @@
+# backend/api_service/requirements-dev.txt
+# ------------------------------------------------
+# pull in the production stack first
+-r requirements.txt
+
+# ---------- testing ----------
+pytest
+pytest-asyncio
+httpx[http2]          # “>” after the name would be a syntax error
+
+# ---------- lint/format (optional) ----------
+ruff
+pre-commit

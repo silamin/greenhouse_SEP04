@@ -1,5 +1,5 @@
-from api_service.adapters.models import SensorDB, SettingsDB, LoginDB, Base
-from api_service.db import SessionLocal, engine
+from api.adapters.models import SensorDB, SettingsDB, LoginDB, Base
+from api.db import SessionLocal, engine
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import random

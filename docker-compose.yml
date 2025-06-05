@@ -11,14 +11,12 @@ services:
       interval: 5s
       retries: 5
 
-  api_service:
+  api:
     build:
-      context: ./backend/api_service
+      context: api
       dockerfile: Dockerfile
-    # instead of the top-level .env, explicitly load the service’s .env
     env_file:
-      - backend/api_service/.env
-    # override only DATABASE_URL to point at localhost
+      - api/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/greenhouse
     depends_on:
@@ -27,14 +25,12 @@ services:
     ports:
       - "8000:8000"
 
-  tcp_service:
+  ml:
     build:
-      context: ./backend/tcp_service
+      context: ml
       dockerfile: Dockerfile
-    env_file:
-      - backend/tcp_service/.env
     ports:
-      - "9000:9000"
+      - "8000:8000"
 
   frontend:
     build:

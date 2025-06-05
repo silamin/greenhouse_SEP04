@@ -19,3 +19,12 @@ variable "frontend_image_uri" {
   description = "ECR image URI for the Frontend container"
   type        = string
 }
+
+variable "ml_image_uri" {
+  description = "ECR image URI for the ML retrain container"
+  type        = string
+}
+variable "model_bucket" {
+  description = "S3 bucket where the refreshed model is stored"
+  type        = string
+}

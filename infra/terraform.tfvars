@@ -9,3 +9,5 @@ subnet_ids         = [
 
 api_image_uri      = "067826606836.dkr.ecr.eu-north-1.amazonaws.com/api-service:YOUR_TAG"
 frontend_image_uri = "067826606836.dkr.ecr.eu-north-1.amazonaws.com/frontend-service:YOUR_TAG"
+ml_image_uri = "067826606836.dkr.ecr.eu-north-1.amazonaws.com/ml-retrain:YOUR_TAG"
+model_bucket = "greenhouse-ml-artifacts"

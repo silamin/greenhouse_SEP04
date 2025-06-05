@@ -5,6 +5,3 @@ psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-pytest
-pytest-asyncio
-httpx[http2]

@@ -1,11 +1,13 @@
+# interfaces/http/schemas.py
 from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 import re
 
+
 # --- Sensors ---
 class SensorDataCreate(BaseModel):
-    timestamp: Optional[datetime]
+    timestamp: Optional[datetime] = None
     temp: float
     hum: float
     soil: int
@@ -16,9 +18,11 @@ class SensorDataCreate(BaseModel):
     acc_y: int
     acc_z: int
 
+
 class SensorDataRead(SensorDataCreate):
     id: int
     timestamp: datetime
+
 
 # --- Settings ---
 class SettingsIn(BaseModel):
@@ -31,24 +35,30 @@ class SettingsIn(BaseModel):
     hum_max: float
     soil_min: int
 
+
 class SettingsOut(SettingsIn):
     id: int
     owner: str
+
 
 # --- Auth ---
 class LoginRequest(BaseModel):
     username: str
     password: str
 
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     is_first_login: bool
 
+
 class LogoutResponse(BaseModel):
     message: str
 
+
 PasswordStr = str
+
 
 class ChangePasswordRequest(BaseModel):
     new_password: PasswordStr

@@ -1,14 +1,20 @@
+# adapters/db/repositories.py
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from domain.entities import (
-    SensorReading, GreenhouseSettings,
-    User, RevokedToken
+    SensorReading,
+    GreenhouseSettings,
+    User,
+    RevokedToken,
 )
 from adapters.db.models import (
-    SensorDB, SettingsDB,
-    LoginDB, RevokedTokenDB
+    SensorDB,
+    SettingsDB,
+    LoginDB,
+    RevokedTokenDB,
 )
 from security import get_password_hash
+
 
 class SensorRepository:
     def __init__(self, db: Session):
@@ -19,11 +25,18 @@ class SensorRepository:
         self.db.add(row)
         self.db.commit()
         self.db.refresh(row)
-        return SensorReading(**row.__dict__)
+
+        # Filter out SQLAlchemy internals before passing to dataclass
+        data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
+        return SensorReading(**data)
 
     def fetch_all(self, skip=0, limit=100) -> List[SensorReading]:
         rows = self.db.query(SensorDB).offset(skip).limit(limit).all()
-        return [SensorReading(**r.__dict__) for r in rows]
+        result = []
+        for row in rows:
+            data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
+            result.append(SensorReading(**data))
+        return result
 
     def fetch_by_time(self, from_time, to_time) -> List[SensorReading]:
         rows = (
@@ -32,7 +45,12 @@ class SensorRepository:
             .order_by(SensorDB.timestamp)
             .all()
         )
-        return [SensorReading(**r.__dict__) for r in rows]
+        result = []
+        for row in rows:
+            data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
+            result.append(SensorReading(**data))
+        return result
+
 
 class SettingsRepository:
     def __init__(self, db: Session):
@@ -40,7 +58,10 @@ class SettingsRepository:
 
     def get(self, owner: str) -> Optional[GreenhouseSettings]:
         row = self.db.query(SettingsDB).filter_by(owner=owner).first()
-        return None if not row else GreenhouseSettings(**row.__dict__)
+        if not row:
+            return None
+        data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
+        return GreenhouseSettings(**data)
 
     def upsert(self, s: GreenhouseSettings) -> GreenhouseSettings:
         row = self.db.query(SettingsDB).filter_by(owner=s.owner).first()
@@ -49,10 +70,15 @@ class SettingsRepository:
             self.db.add(row)
         else:
             for k, v in s.__dict__.items():
+                if k == "id":
+                    continue
                 setattr(row, k, v)
         self.db.commit()
         self.db.refresh(row)
-        return GreenhouseSettings(**row.__dict__)
+
+        data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
+        return GreenhouseSettings(**data)
+
 
 class UserRepository:
     def __init__(self, db: Session):
@@ -62,11 +88,13 @@ class UserRepository:
         row = self.db.query(LoginDB).filter_by(username=username).first()
         if not row:
             return None
+
+        data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
         return User(
-            id=row.id,
-            username=row.username,
-            password_hash=row.password_hash,
-            is_first_login=row.is_first_login
+            id=data["id"],
+            username=data["username"],
+            password_hash=data["password_hash"],
+            is_first_login=data["is_first_login"],
         )
 
     def upsert_admin(self, username: str, password: str) -> User:
@@ -80,11 +108,13 @@ class UserRepository:
             row.is_first_login = True
         self.db.commit()
         self.db.refresh(row)
+
+        data = {k: v for k, v in row.__dict__.items() if not k.startswith("_")}
         return User(
-            id=row.id,
-            username=row.username,
-            password_hash=row.password_hash,
-            is_first_login=row.is_first_login
+            id=data["id"],
+            username=data["username"],
+            password_hash=data["password_hash"],
+            is_first_login=data["is_first_login"],
         )
 
     def change_password(self, username: str, new_password: str):
@@ -93,6 +123,7 @@ class UserRepository:
             row.password_hash = get_password_hash(new_password)
             row.is_first_login = False
             self.db.commit()
+
 
 class TokenBlacklistRepository:
     def __init__(self, db: Session):
@@ -103,4 +134,7 @@ class TokenBlacklistRepository:
         self.db.commit()
 
     def is_revoked(self, jti: str) -> bool:
-        return self.db.query(RevokedTokenDB).filter_by(jti=jti).first() is not None
+        return (
+            self.db.query(RevokedTokenDB).filter_by(jti=jti).first()
+            is not None
+        )

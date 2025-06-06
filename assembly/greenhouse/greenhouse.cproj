@@ -247,7 +247,7 @@
     <Folder Include="Debug\" />
     <Folder Include="drivers\" />
     <Folder Include="include\" />
-    <Folder Include="lib\" />
+    <Folder Include="lib" />
   </ItemGroup>
   <ItemGroup>
     <None Include="greenhouse.componentinfo.xml">

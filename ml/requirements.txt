@@ -1,7 +1,5 @@
-pandas
-scikit-learn
-joblib
 fastapi
-uvicorn[standard]
-pydantic
-pytest
+mangum
+requests
+joblib
+scikit-learn

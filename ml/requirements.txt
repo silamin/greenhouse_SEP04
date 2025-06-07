@@ -1,0 +1,5 @@
+fastapi
+mangum
+requests
+joblib
+scikit-learn

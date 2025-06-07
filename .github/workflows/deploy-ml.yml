@@ -1,0 +1,55 @@
+name: Build & Publish ML Retrain Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ml/**'
+      - '.github/ml-image-build.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-north-1
+  ECR_ACCOUNT: "067826606836"
+  REPOSITORY: ml-retrain
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      ml_image_uri: ${{ steps.set-uri.outputs.ml_image_uri }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push ML retrain image
+        id: build
+        run: |
+          TAG=${GITHUB_SHA}
+          IMAGE_URI=${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.REPOSITORY }}:${TAG}
+          docker build -t $IMAGE_URI -f ml/Dockerfile ml
+          docker push $IMAGE_URI
+          echo "ml_image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      - name: Update SSM parameter for Terraform
+        run: |
+          aws ssm put-parameter \
+            --name "/api/ml_image_uri" \
+            --value "${{ steps.build.outputs.ml_image_uri }}" \
+            --type "String" --overwrite
+
+      - name: (Optional) Trigger Terraform apply
+        run: |
+          cd infra
+          terraform init -input=false
+          terraform apply -auto-approve -var="ml_image_uri=${{ steps.build.outputs.ml_image_uri }}"

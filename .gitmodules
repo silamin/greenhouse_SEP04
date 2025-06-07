@@ -1,9 +1,0 @@
-[submodule "mal"]
-	path = mal
-	url = https://github.com/silamin/MAL.git
-[submodule "esw"]
-	path = esw
-	url = https://github.com/silamin/ESW.git
-[submodule "web"]
-	path = web
-	url = https://github.com/silamin/WEB.git

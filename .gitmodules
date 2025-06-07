@@ -1,3 +1,12 @@
 [submodule "api"]
 	path = api
 	url = https://github.com/silamin/api.git
+[submodule "esw"]
+	path = esw
+	url = https://github.com/silamin/esw.git
+[submodule "mal"]
+	path = mal
+	url = https://github.com/silamin/mal.git
+[submodule "web"]
+	path = web
+	url = https://github.com/silamin/web.git

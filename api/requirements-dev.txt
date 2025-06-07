@@ -1,6 +1,0 @@
--r requirements.txt
-pytest
-pytest-asyncio
-httpx[http2]
-ruff
-pre-commit
